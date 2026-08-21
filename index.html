@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#171713" />
+    <meta name="description" content="Calibrador profesional de espresso para Peppos Coffee Academy." />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icons/pepos-icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icons/pepos-icon-192.png" />
+    <link rel="stylesheet" href="/src/styles.css" />
+    <title>Peppos Dial-In</title>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#calibrador" aria-label="Peppos Dial-In, ir al calibrador">
+          <img src="/assets/peppos-coffee-academy.jpeg" alt="Peppos Coffee Academy" />
+          <span class="product-name">DIAL-IN</span>
+        </a>
+        <div class="top-actions">
+          <span class="network-status" id="networkStatus"><i></i><span>Offline listo</span></span>
+          <button class="icon-button install-button" id="installButton" type="button" hidden title="Instalar aplicación" aria-label="Instalar aplicación">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 21h14"/></svg>
+          </button>
+          <button class="icon-button" id="historyButton" type="button" title="Ver historial" aria-label="Ver historial">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8m0-5v5h5M12 7v5l3 2"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <main id="calibrador">
+        <section class="intro-band" aria-labelledby="pageTitle">
+          <div>
+            <p class="eyebrow">Calibración de espresso</p>
+            <h1 id="pageTitle">Afina el punto.<br />Repite el resultado.</h1>
+          </div>
+          <p class="intro-copy">Introduce la receta real. Peppos separa el ajuste de ratio del ajuste de molienda.</p>
+        </section>
+
+        <section class="workspace">
+          <form class="recipe-panel" id="recipeForm" autocomplete="off">
+            <div class="section-heading">
+              <div>
+                <span class="step-number">01</span>
+                <h2>Receta objetivo</h2>
+              </div>
+              <button class="text-button" id="resetButton" type="button">Reiniciar</button>
+            </div>
+
+            <fieldset class="ratio-fieldset">
+              <legend>Ratio deseado</legend>
+              <div class="segmented" id="ratioPresets">
+                <button type="button" data-ratio="1.5">1:1,5</button>
+                <button type="button" data-ratio="2" class="active">1:2</button>
+                <button type="button" data-ratio="2.5">1:2,5</button>
+                <button type="button" data-ratio="3">1:3</button>
+              </div>
+              <label class="inline-custom">
+                <span>Personalizado</span>
+                <span class="input-with-prefix"><b>1:</b><input id="targetRatio" name="targetRatio" type="number" inputmode="decimal" min="0.5" max="5" step="0.1" value="2.0" required /></span>
+              </label>
+            </fieldset>
+
+            <div class="field-grid measurements">
+              <label>
+                <span>Dosis seca</span>
+                <span class="input-with-unit"><input id="dose" name="dose" type="number" inputmode="decimal" min="1" max="50" step="0.1" value="18.0" required /><b>g</b></span>
+              </label>
+              <label>
+                <span>Bebida obtenida</span>
+                <span class="input-with-unit"><input id="yieldWeight" name="yieldWeight" type="number" inputmode="decimal" min="1" max="150" step="0.1" value="36.0" required /><b>g</b></span>
+              </label>
+            </div>
+
+            <div class="time-row">
+              <label class="actual-time">
+                <span>Tiempo real</span>
+                <span class="input-with-unit"><input id="actualTime" name="actualTime" type="number" inputmode="decimal" min="1" max="180" step="0.1" value="30.0" required /><b>s</b></span>
+              </label>
+              <button class="timer-button" id="timerButton" type="button" aria-pressed="false">
+                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 2h6M12 8v5l3 2M5.6 5.6 4 4m14.4 1.6L20 4M12 4a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17Z"/></svg>
+                <span id="timerLabel">Cronómetro</span>
+              </button>
+            </div>
+
+            <details class="advanced-settings">
+              <summary>Ventana de tiempo objetivo <span id="timeRangeSummary">25–35 s</span></summary>
+              <div class="field-grid compact-fields">
+                <label><span>Mínimo</span><span class="input-with-unit"><input id="minTime" type="number" inputmode="decimal" min="5" max="90" step="1" value="25" /><b>s</b></span></label>
+                <label><span>Máximo</span><span class="input-with-unit"><input id="maxTime" type="number" inputmode="decimal" min="6" max="120" step="1" value="35" /><b>s</b></span></label>
+              </div>
+            </details>
+          </form>
+
+          <section class="result-panel" aria-live="polite" aria-labelledby="resultTitle">
+            <div class="section-heading inverse">
+              <div>
+                <span class="step-number">02</span>
+                <h2 id="resultTitle">Diagnóstico</h2>
+              </div>
+              <span class="status-badge" id="overallStatus">En punto</span>
+            </div>
+
+            <div class="result-focus">
+              <div class="ratio-gauge" id="ratioGauge" style="--progress: 50; --status-color: #b9d87b">
+                <div>
+                  <span>Ratio real</span>
+                  <strong id="actualRatioDisplay">1:2,00</strong>
+                  <small id="ratioDeltaDisplay">Objetivo 1:2,00</small>
+                </div>
+              </div>
+              <div class="target-yield">
+                <span>Corta en</span>
+                <strong><span id="targetYieldDisplay">36,0</span><small> g</small></strong>
+                <p id="yieldInstruction">El rendimiento coincide.</p>
+              </div>
+            </div>
+
+            <div class="grind-direction" id="grindDirection">
+              <span class="direction-icon" id="directionIcon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M12 4v16m0 0 6-6m-6 6-6-6"/></svg>
+              </span>
+              <div>
+                <span class="micro-label">Ajuste del molinillo</span>
+                <h3 id="grindTitle">Mantén el punto</h3>
+                <p id="grindDescription">El flujo estimado está dentro de la ventana objetivo.</p>
+              </div>
+            </div>
+
+            <div class="metrics-strip">
+              <div><span>Tiempo al objetivo</span><strong id="projectedTimeDisplay">30,0 s</strong></div>
+              <div><span>Desvío de bebida</span><strong id="yieldDeltaDisplay">0,0 g</strong></div>
+            </div>
+
+            <ol class="action-list" id="actionList">
+              <li><span>1</span><p>Mantén la dosis en <strong>18,0 g</strong>.</p></li>
+              <li><span>2</span><p>Detén la extracción en <strong>36,0 g</strong>.</p></li>
+              <li><span>3</span><p>Mantén el ajuste actual del molinillo.</p></li>
+            </ol>
+
+            <p class="caution" id="cautionText" hidden>El tiempo al objetivo es una estimación. Confirma el ajuste con un nuevo espresso y con la evaluación sensorial.</p>
+          </section>
+        </section>
+
+        <section class="save-band" aria-labelledby="saveTitle">
+          <div class="section-heading">
+            <div>
+              <span class="step-number">03</span>
+              <h2 id="saveTitle">Guardar calibración</h2>
+            </div>
+          </div>
+          <div class="save-fields">
+            <label><span>Cliente o local</span><input id="clientName" type="text" placeholder="Peppos Coffee Centro" maxlength="60" /></label>
+            <label><span>Máquina</span><input id="machineName" type="text" placeholder="La Marzocco Linea PB" maxlength="60" /></label>
+            <label><span>Molinillo</span><input id="grinderName" type="text" placeholder="Mahlkönig E65S" maxlength="60" /></label>
+            <label><span>Café / notas</span><input id="coffeeNotes" type="text" placeholder="Blend casa · dulce y equilibrado" maxlength="100" /></label>
+          </div>
+          <button class="primary-button" id="saveButton" type="button">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5V3Zm3 0v6h8V3M8 21v-7h8v7"/></svg>
+            Guardar registro
+          </button>
+          <p class="storage-note">Se guarda únicamente en este dispositivo.</p>
+        </section>
+
+        <section class="history-section" id="history" aria-labelledby="historyTitle">
+          <div class="section-heading">
+            <div>
+              <span class="step-number">04</span>
+              <h2 id="historyTitle">Historial</h2>
+            </div>
+            <button class="text-button" id="exportButton" type="button">Exportar CSV</button>
+          </div>
+          <div class="history-list" id="historyList"></div>
+          <div class="empty-state" id="emptyHistory">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 3h10l1 4H6l1-4Zm-1 4h12l1 14H5L6 7Zm3 4h6"/></svg>
+            <p>Aún no hay calibraciones guardadas.</p>
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        <span>PEPPOS COFFEE ACADEMY</span>
+        <p>Precisión al servicio del sabor.</p>
+      </footer>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="/src/calculator.js" defer></script>
+    <script src="/src/app.js" defer></script>
+  </body>
+</html>
