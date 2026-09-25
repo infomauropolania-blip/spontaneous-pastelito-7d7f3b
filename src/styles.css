@@ -20,9 +20,10 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html { scroll-behavior: smooth; }
 body { margin: 0; min-width: 320px; min-height: 100vh; background: var(--paper); }
-button, input { font: inherit; }
+button, input, select, textarea { font: inherit; }
 button { color: inherit; }
 button:focus-visible, input:focus-visible, summary:focus-visible { outline: 3px solid rgba(232, 172, 80, .32); outline-offset: 2px; }
 
@@ -54,8 +55,13 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 3px 
 main { width: min(1180px, 100%); margin: 0 auto; padding: 0 32px; }
 .intro-band { min-height: 260px; padding: 52px 0 46px; display: flex; align-items: end; justify-content: space-between; gap: 40px; border-bottom: 1px solid var(--line); }
 .eyebrow { margin: 0 0 12px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.6px; color: var(--gold-ink); }
-h1 { margin: 0; max-width: 680px; font: 800 clamp(40px, 6vw, 74px)/.97 "Manrope", sans-serif; letter-spacing: 0; }
+h1 { margin: 0; max-width: 740px; font: 800 clamp(38px, 4.6vw, 58px)/1.05 "Manrope", sans-serif; letter-spacing: -.025em; text-wrap: balance; }
 .intro-copy { max-width: 340px; margin: 0 0 5px; color: var(--muted); font-size: 17px; line-height: 1.55; }
+.experience-switch { display: flex; align-items: center; gap: 7px; padding: 16px 0 20px; }
+.experience-switch > span { margin-right: 5px; color: var(--muted); font-size: 12px; font-weight: 700; }
+.experience-switch button { min-height: 36px; padding: 0 13px; border: 1px solid var(--line); border-radius: 5px; background: var(--white); cursor: pointer; font-size: 12px; font-weight: 800; }
+.experience-switch button[aria-pressed="true"] { background: var(--gold); border-color: var(--ink); }
+body[data-experience="home"] .pro-only { display: none !important; }
 
 .workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(390px, .9fr); border-bottom: 1px solid var(--line); }
 .recipe-panel { padding: 46px 52px 52px 0; border-right: 1px solid var(--line); }
@@ -74,6 +80,7 @@ legend, label > span:first-child, .micro-label { margin-bottom: 9px; display: bl
 .segmented button { min-height: 48px; border: 0; border-right: 1px solid var(--line); background: transparent; cursor: pointer; font-weight: 700; transition: color .2s, background .2s; }
 .segmented button:last-child { border-right: 0; }
 .segmented button.active { color: var(--ink); background: var(--gold); }
+.segmented button { padding: 6px; font-size: 12px; }
 .inline-custom { margin: 14px 0 34px; display: flex; align-items: center; justify-content: space-between; }
 .inline-custom > span:first-child { margin: 0; text-transform: none; letter-spacing: 0; font-weight: 500; }
 .input-with-prefix { display: flex; align-items: baseline; gap: 3px; }
@@ -94,6 +101,68 @@ legend, label > span:first-child, .micro-label { margin-bottom: 9px; display: bl
 .compact-fields { margin-top: 20px; }
 .compact-fields .input-with-unit { min-height: 50px; }
 .compact-fields .input-with-unit input { font-size: 20px; }
+.filter-method-label, .filter-strength-label { display:block; margin-bottom:24px; }
+.filter-method-label select, .filter-strength-label select, .filter-observations select { width:100%; min-height:62px; padding:0 14px; border:1px solid var(--line); border-radius:6px; background:var(--white); color:var(--ink); font:700 18px/1.2 "Nimbus Sans", Arial, sans-serif; }
+.filter-observations { margin-top:24px; margin-bottom:24px; }
+.filter-observations select { font-size:14px; }
+.filter-reference { padding:15px 17px; border-left:4px solid var(--gold-dark); background:#fff9ed; color:#554632; font-size:13px; line-height:1.55; }
+.filter-ratio-result { display:grid; gap:4px; padding:12px 0 22px; border-bottom:1px solid rgba(23,23,19,.3); }
+.filter-ratio-result span, .filter-target > span { color:#4b3a21; font-size:11px; font-weight:800; letter-spacing:.6px; text-transform:uppercase; }
+.filter-ratio-result strong { font:800 43px/1.1 "Manrope",sans-serif; }
+.filter-ratio-result small { font-weight:700; }
+.filter-target { padding:22px 0 0; }
+.filter-target strong { display:block; margin:5px 0; font:800 32px/1.1 "Manrope",sans-serif; }
+.filter-target p { margin:0; font-size:13px; line-height:1.45; }
+.filter-direction { margin:24px 0; }
+.history-main small { color:var(--gold-ink); font-size:11px; }
+
+.manual-workspace { padding: 46px 0 54px; border-bottom: 1px solid var(--line); }
+#manualTitle { max-width: 620px; text-wrap: balance; }
+.manual-intro { max-width: 680px; margin: -18px 0 26px; color: var(--muted); line-height: 1.55; }
+.manual-method-label { display: block; max-width: 720px; margin-bottom: 8px; padding: 20px; border: 2px solid var(--gold); border-radius: 8px; background: var(--ink); }
+.manual-method-label > span:first-child { color: var(--gold); font-size: 14px; }
+.manual-method-label select { width: 100%; min-height: 68px; padding: 0 16px; border: 2px solid var(--gold); border-radius: 6px; background: var(--white); color: var(--ink); font: 800 21px/1.2 "Manrope", sans-serif; cursor: pointer; }
+.manual-method-label select:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+.manual-selector-help { margin: 0 0 28px; color: var(--muted); font-size: 13px; }
+.manual-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, .9fr); gap: 22px; align-items: start; }
+.manual-layout.linked-method { grid-template-columns: 1fr; }
+.manual-layout.linked-method .manual-recipe { max-width: 760px; }
+.manual-recipe, .manual-calibration { padding: 28px; border: 1px solid var(--line); border-radius: 8px; background: var(--white); }
+.manual-recipe { border-top: 5px solid var(--gold); }
+.manual-recipe h3 { margin: 0 0 8px; font: 800 30px/1.15 "Manrope", sans-serif; }
+.manual-recipe > p:not(.eyebrow) { color: var(--muted); line-height: 1.5; }
+.manual-recipe-metrics { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0 26px; }
+.manual-recipe-metrics span { padding: 9px 11px; border-radius: 5px; background: #f8e5c2; font-size: 13px; font-weight: 800; }
+.manual-recipe h4 { margin: 0 0 12px; font: 800 16px/1.3 "Manrope", sans-serif; }
+.manual-recipe ol { margin: 0 0 18px; padding-left: 23px; }
+.manual-recipe li { margin-bottom: 12px; padding-left: 5px; line-height: 1.5; }
+.manual-recipe-note { padding: 14px; border-left: 4px solid var(--gold); background: #fff8e9; font-size: 13px; }
+.manual-recipe a { display: inline-block; margin: 4px 0 16px; color: var(--gold-ink); font-size: 13px; font-weight: 800; }
+.secondary-button { min-height: 48px; padding: 0 18px; display: block; border: 1px solid var(--ink); border-radius: 6px; background: var(--ink); color: var(--gold); font-weight: 800; cursor: pointer; }
+.back-to-method { margin: -20px 0 26px; color: var(--gold-ink); }
+.manual-calibration h3 { margin: 0 0 8px; font: 800 23px/1.2 "Manrope", sans-serif; }
+.manual-calibration-intro, .manual-advice { color: var(--muted); font-size: 13px; line-height: 1.5; }
+.manual-fields, .manual-taste-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 22px 0; }
+.manual-fields label, .manual-taste-fields label { min-width: 0; }
+.manual-fields input:not([type="checkbox"]), .manual-fields select, .manual-taste-fields select, .manual-advanced textarea, .save-fields select { width: 100%; min-height: 48px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--white); color: var(--ink); }
+.manual-fields input[type="checkbox"] { width: 25px; height: 25px; accent-color: var(--gold-dark); }
+.manual-full { grid-column: 1 / -1; }
+.manual-advanced { padding-top: 18px; border-top: 1px solid var(--line); }
+.manual-advanced summary { color: var(--ink); font-size: 13px; font-weight: 800; cursor: pointer; }
+.manual-advanced textarea { resize: vertical; }
+.manual-feedback { margin: 22px 0 0; padding: 18px; border-radius: 6px; background: #f8e5c2; }
+.manual-feedback strong { font: 800 18px/1.2 "Manrope", sans-serif; }
+.manual-feedback p { margin: 8px 0 0; font-size: 13px; line-height: 1.5; }
+.espresso-tasting { margin: 10px 0 22px; padding: 18px; border: 2px solid var(--ink); border-radius: 6px; background: rgba(255,255,255,.32); }
+.espresso-tasting label span { color: var(--ink); font-weight: 900; }
+.espresso-tasting select { width: 100%; min-height: 46px; margin-bottom: 14px; padding: 8px 10px; border: 1px solid var(--ink); border-radius: 5px; background: var(--white); }
+.espresso-tasting strong { display: block; font: 800 18px/1.25 "Manrope", sans-serif; }
+.espresso-tasting p { margin: 8px 0 0; font-size: 13px; line-height: 1.45; }
+.espresso-tasting .espresso-next { margin-top: 12px; font-weight: 800; }
+.espresso-comparison { margin: 0 0 18px; }
+.espresso-comparison .text-button { color: var(--ink); }
+.espresso-comparison p { margin: 10px 0 0; padding: 12px; border-left: 4px solid var(--ink); background: rgba(255,255,255,.3); font-size: 12px; line-height: 1.5; }
+.coffee-context > p { color: var(--muted); font-size: 12px; line-height: 1.5; }
 
 .status-badge { padding: 7px 10px; border: 2px solid var(--ink); border-radius: 4px; background: var(--lime); color: var(--ink); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .6px; }
 .result-focus { display: grid; grid-template-columns: 170px 1fr; gap: 26px; align-items: center; }
@@ -129,7 +198,7 @@ legend, label > span:first-child, .micro-label { margin-bottom: 9px; display: bl
 
 .save-band { padding: 54px 0; border-bottom: 1px solid var(--line); }
 .save-fields { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
-.save-fields input { width: 100%; height: 50px; padding: 0 13px; border: 1px solid var(--line); border-radius: 6px; background: var(--white); color: var(--ink); }
+.save-fields input, .save-fields select { width: 100%; height: 50px; padding: 0 13px; border: 1px solid var(--line); border-radius: 6px; background: var(--white); color: var(--ink); }
 .save-fields input:focus { border-color: var(--gold-dark); outline: 0; }
 .primary-button { min-height: 52px; margin-top: 24px; padding: 0 22px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; border: 0; border-radius: 6px; background: var(--gold); color: var(--ink); font-weight: 800; cursor: pointer; transition: background .2s, transform .2s; }
 .primary-button:hover { background: var(--gold-dark); transform: translateY(-1px); }
@@ -169,16 +238,25 @@ footer p { margin: 0; font-size: 13px; }
   .result-panel { margin: 0 -22px; padding: 40px 22px 44px; }
   .result-panel::before { inset: 0; border-radius: 0; }
   .save-band { padding-top: 46px; }
+  .manual-layout { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 560px) {
+  .experience-switch { flex-wrap: wrap; }
+  .experience-switch > span { flex-basis: 100%; }
+  .manual-workspace { padding: 34px 0 42px; }
+  .manual-method-label { max-width: none; padding: 14px; }
+  .manual-method-label select { min-height: 64px; font-size: 19px; }
+  .manual-recipe, .manual-calibration { padding: 20px; }
+  .manual-fields, .manual-taste-fields { grid-template-columns: 1fr; }
+  .filter-observations { grid-template-columns:1fr; }
   .topbar { height: 64px; padding: 0 16px; }
   .brand img { width: 112px; height: 41px; }
   .product-name { display: none; }
   .network-status span { display: none; }
   main { padding: 0 16px; }
   .intro-band { min-height: 210px; padding: 32px 0; }
-  h1 { font-size: 40px; }
+  h1 { font-size: 36px; line-height: 1.08; }
   .intro-copy { font-size: 15px; }
   .recipe-panel { padding: 34px 0 38px; }
   .section-heading { margin-bottom: 28px; }
