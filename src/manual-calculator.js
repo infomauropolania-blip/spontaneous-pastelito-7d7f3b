@@ -8,7 +8,7 @@
       name: 'Ristretto', kind: 'espresso', lead: 'Un espresso corto para explorar concentración y textura.',
       metrics: ['18 g de café', '27 g en taza', 'Ratio 1:1,5'],
       steps: ['Pesa la dosis y distribuye el café de manera uniforme.', 'Extrae 27 g de bebida a partir de 18 g de café como primer ensayo.', 'Prueba el sabor y ajusta molienda o rendimiento en pequeñas etapas.'],
-      note: 'El ratio es editable. Ristretto indica una bebida más corta; el tiempo por sí solo no decide si está bien calibrado.',
+      note: 'La referencia describe el ristretto como una bebida más corta, cercana a 1:1,5. Es un punto de partida editable: prueba la taza antes de decidir si está bien calibrada.',
       source: 'https://sca.coffee/sca-news/25/issue-9/english/water-and-coffee-acidity-how-to-adapt-your-water-for-different-extraction-methods-25-magazine-issue-9-pxjby',
       ratio: 1.5
     },
@@ -16,7 +16,7 @@
       name: 'Espresso', kind: 'espresso', lead: 'Punto de partida clásico, siempre ajustable al café y al gusto.',
       metrics: ['18 g de café', '36 g en taza', 'Ratio 1:2'],
       steps: ['Muele y pesa 18 g de café; distribuye y compacta de forma uniforme.', 'Extrae aproximadamente 36 g de bebida.', 'Prueba la taza y registra dosis, peso final y tiempo antes de ajustar.'],
-      note: 'Referencia SCA: el ratio 1:2 es un promedio observado y sirve como punto de partida, no como receta obligatoria. El enlace es una lectura de referencia, no un formulario.',
+      note: 'La SCA observó el ratio 1:2 como promedio, no como una receta obligatoria. Úsalo como punto de partida y decide los ajustes después de probar la taza.',
       source: 'https://sca.coffee/sca-news/25-magazine/issue-3/defining-ever-changing-espresso-25-magazine-issue-3-zyx36',
       ratio: 2
     },
