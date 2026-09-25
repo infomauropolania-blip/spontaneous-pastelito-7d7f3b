@@ -71,10 +71,10 @@
       source: 'https://www.bodum.com/us/en/1928-16us4-chambord', defaults: { dose: 18, water: 300, ratio: 300 / 18, time: 4, timeUnit: 'min' }
     },
     superauto: {
-      name: 'Superautomática', kind: 'superauto', lead: 'Calibra lo que tu máquina sí permite controlar: intensidad, volumen y molienda.',
-      metrics: ['Anota el modelo', 'Elige intensidad', 'Ajusta volumen de taza'],
-      steps: ['Selecciona un café Peppos e indica el modelo de máquina.', 'Empieza con intensidad media y un volumen de taza que te guste; anota el resultado.', 'Prueba el sabor. Si cambias el molinillo, sigue el manual de tu modelo y cambia un paso cada vez.'],
-      note: 'En algunas DeLonghi el dial solo debe moverse mientras el molinillo funciona; comprueba las instrucciones de tu propia máquina.',
+      name: 'Superautomática', kind: 'superauto', lead: 'Ajusta el volumen y la molienda; algunas máquinas también permiten cambiar la intensidad.',
+      metrics: ['Busca tu modelo', 'Ajusta lo disponible', 'Prueba la taza'],
+      steps: ['Selecciona un café Peppos y busca el modelo exacto de tu máquina.', 'Empieza con la cantidad mínima de agua que permita tu modelo. Si puedes ajustar la intensidad, elige un valor alto y prueba la taza.', 'Si ajustas el molinillo, haz el cambio más pequeño posible y avanza gradualmente, un punto cada vez. Sigue el manual de tu modelo para saber cuándo mover el selector.'],
+      note: 'En algunas De’Longhi el dial solo debe moverse mientras el molinillo funciona; comprueba las instrucciones de tu propia máquina.',
       source: 'https://www.delonghi.com/en-us/faqs/How-do-I-adjust-the-coffee-grinder/a/16661'
     }
   };
@@ -129,16 +129,28 @@
     } else {
       const volume = Number(input.waterVolume);
       if (!Number.isFinite(volume) || volume <= 0 || volume > 500) return null;
+      const goal = input.targetVolume == null || input.targetVolume === '' ? null : Number(input.targetVolume);
+      if (goal !== null && (!Number.isFinite(goal) || goal <= 0 || goal > 500)) return null;
       result.model = String(input.model || '').trim();
       result.waterVolume = volume;
+      result.targetVolume = goal;
       result.strengthSetting = String(input.strengthSetting || 'media');
       result.grinderSetting = String(input.grinderSetting || '').trim();
-      if (input.taste === 'sour') { title = 'Prueba un ajuste pequeño'; advice = 'Si tu modelo lo permite, prueba un paso hacia molienda más fina siguiendo su manual; espera varios cafés para evaluar el cambio.'; }
-      else if (input.taste === 'bitter') { title = 'Prueba un ajuste pequeño'; advice = 'Compara un paso hacia molienda más gruesa o menos intensidad, siguiendo el manual de tu modelo.'; }
-      else if (input.taste === 'uneven') { title = 'Revisa máquina y café'; advice = 'Limpia el sistema según su manual y repite varias tazas antes de cambiar ajustes.'; }
-      else if (input.taste !== 'untried' && input.strength === 'weak') { title = 'Más intensidad'; advice = 'Prueba mayor intensidad o menos volumen de agua, un cambio cada vez.'; }
-      else if (input.taste !== 'untried' && input.strength === 'strong') { title = 'Menos intensidad'; advice = 'Prueba menor intensidad o más volumen de agua, un cambio cada vez.'; }
-      targetText = `Configuración registrada: ${volume.toFixed(0)} ml de agua y fuerza ${result.strengthSetting}. La dosis real depende del modelo.`;
+      const tolerance = goal === null ? 0 : Math.max(3, goal * 0.1);
+      const tooLong = goal !== null && volume > goal + tolerance;
+      const tooShort = goal !== null && volume < goal - tolerance;
+      if (input.taste === 'uneven') { title = 'Revisa máquina y café'; advice = 'Limpia el sistema según su manual y repite la prueba antes de cambiar la molienda.'; }
+      else if (input.taste === 'bitter' && tooLong) { title = 'Prueba una taza más corta'; advice = 'Ha salido más volumen del que buscas y sabe amarga. Reduce un paso el volumen programado, si tu modelo lo permite, y vuelve a probar sin cambiar la molienda.'; }
+      else if (input.taste === 'bitter') { title = 'Prueba un ajuste pequeño'; advice = 'La amargura no se deduce solo de los mililitros. Si el volumen ya está donde lo buscas, prueba un punto de molienda más gruesa siguiendo el manual y compara varias tazas.'; }
+      else if (input.taste === 'sour' && tooShort) { title = 'Acércate al volumen buscado'; advice = 'Ha salido menos volumen del que buscas y sabe ácida. Prueba un pequeño aumento del volumen programado y vuelve a catar antes de tocar el molinillo.'; }
+      else if (input.taste === 'sour') { title = 'Prueba un ajuste pequeño'; advice = 'Si el volumen está donde lo buscas y sigue ácida, prueba un punto hacia molienda más fina solo como indica el manual; compara varias tazas.'; }
+      else if (tooLong) { title = 'Acorta la taza'; advice = 'Ha salido más volumen del que buscas. Reduce un paso el volumen programado, si tu modelo lo permite, y prueba el sabor antes de cambiar otro ajuste.'; }
+      else if (tooShort) { title = 'Acércate al volumen buscado'; advice = 'Ha salido menos volumen del que buscas. Aumenta un paso el volumen programado, si tu modelo lo permite, y vuelve a probar.'; }
+      else if (input.taste !== 'untried' && input.strength === 'weak' && !['alta', 'no-disponible'].includes(result.strengthSetting)) { title = 'Más intensidad'; advice = 'Con el volumen ya ajustado, sube un nivel la intensidad de la máquina y vuelve a probar; no muevas todavía el molinillo.'; }
+      else if (input.taste !== 'untried' && input.strength === 'weak') { title = 'Más cuerpo'; advice = 'Si la intensidad de la máquina ya está alta, prueba una taza ligeramente más corta y compara el sabor antes de cambiar la molienda.'; }
+      else if (input.taste !== 'untried' && input.strength === 'strong') { title = 'Menos intensidad'; advice = 'Si el sabor es agradable pero demasiado fuerte, baja un nivel la intensidad si tu máquina lo permite y vuelve a probar.'; }
+      else if (input.taste === 'untried') { title = 'Prueba la taza'; advice = goal === null ? 'Indica el volumen que buscas y prueba el sabor: los mililitros por sí solos no diagnostican la extracción.' : 'El volumen está cerca de tu objetivo. Prueba el sabor antes de decidir si cambias la molienda.'; }
+      targetText = `Han salido ${volume.toFixed(0)} ml en taza${goal === null ? '; objetivo sin indicar' : `; buscas ${goal.toFixed(0)} ml`}. Intensidad de la máquina: ${result.strengthSetting}. El volumen por sí solo no demuestra sobreextracción.`;
     }
     return { ...result, title, advice, targetText };
   }

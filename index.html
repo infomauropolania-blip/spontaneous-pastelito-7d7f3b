@@ -66,6 +66,13 @@
             <form class="manual-calibration" id="manualForm" autocomplete="off">
               <h3>Calibra esta receta</h3>
               <p class="manual-calibration-intro" id="manualCalibrationIntro"></p>
+              <div class="machine-lookup" id="machineLookup" hidden>
+                <label for="manualModel"><span>Busca la marca o el modelo exacto</span></label>
+                <input id="manualModel" type="search" placeholder="Ej.: Philips EP2224/10" aria-describedby="machineLookupHelp" />
+                <p id="machineLookupHelp">Elige tu máquina para ver sus controles. Si no aparece, usa la receta general.</p>
+                <div class="machine-matches" id="machineMatches" aria-label="Modelos disponibles"></div>
+                <article class="machine-guide" id="machineGuide" aria-live="polite"></article>
+              </div>
               <div class="manual-fields" id="manualFields"></div>
               <div class="manual-taste-fields" id="manualTasteFields">
                 <label><span>Sabor de la taza</span><select id="manualTaste"><option value="untried">Todavía no la he probado</option><option value="balanced">Equilibrado</option><option value="sour">Ácido o poco desarrollado</option><option value="bitter">Amargo o seco</option><option value="uneven">Ácido y amargo a la vez</option></select></label>
@@ -296,6 +303,7 @@
     <script src="/src/calculator.js" defer></script>
     <script src="/src/filter-calculator.js" defer></script>
     <script src="/src/manual-calculator.js" defer></script>
+    <script src="/src/machine-guides.js" defer></script>
     <script src="/src/app.js" defer></script>
   </body>
 </html>

@@ -8,6 +8,7 @@ const METHOD_KEY = 'peppos-academy-selected-method-v1';
 const { calculateShot, interpretEspresso, clamp } = window.PepposCalculator;
 const { METHODS, calculateFilter } = window.PepposFilterCalculator;
 const { methods: MANUAL_METHODS, evaluateManual } = window.PepposManual;
+const { search: searchMachines, exact: exactMachine } = window.PepposMachines;
 let activeMethod = 'espresso';
 
 function setExperience(mode) {
@@ -136,6 +137,7 @@ function currentManualResult() {
     waterToValve: manualValue('manualWaterToValve'), basketLevel: manualValue('manualBasketLevel'),
     heat: manualValue('manualHeat'), model: manualValue('manualModel'),
     waterVolume: Number(String(manualValue('manualVolume')).replace(',', '.')),
+    targetVolume: manualValue('manualTargetVolume') ? Number(String(manualValue('manualTargetVolume')).replace(',', '.')) : null,
     strengthSetting: manualValue('manualStrengthSetting'), grinderSetting: manualValue('manualGrinderSetting')
   });
 }
@@ -148,6 +150,62 @@ function renderManualFeedback() {
   $('#manualFeedbackText').textContent = result?.advice || 'Completa los valores positivos para obtener una orientación.';
   $('#manualTargetText').textContent = result?.targetText || '';
 }
+
+function renderMachineLookup() {
+  const query = $('#manualModel').value.trim();
+  const selected = exactMachine(query);
+  const matches = $('#machineMatches');
+  const panel = $('#machineGuide');
+  const available = query ? searchMachines(query) : [];
+  matches.replaceChildren(...available.map((machine) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = `${machine.brand} · ${machine.model}`;
+    button.setAttribute('aria-pressed', String(selected?.id === machine.id));
+    button.addEventListener('click', () => {
+      $('#manualModel').value = `${machine.brand} ${machine.model}`;
+      renderMachineLookup();
+      renderManualFeedback();
+    });
+    return button;
+  }));
+  panel.replaceChildren();
+  const heading = document.createElement('h4');
+  if (!selected) {
+    const strengthInput = $('#manualStrengthSetting');
+    if (strengthInput?.value === 'no-disponible') strengthInput.value = 'media';
+    heading.textContent = query ? 'Modelo sin guía específica' : 'Elige una máquina';
+    const info = document.createElement('p');
+    info.textContent = query
+      ? 'Comprueba la referencia exacta. Puedes seguir la receta general, pero los controles de tu máquina deben consultarse en su manual.'
+      : 'Escribe una marca o referencia para encontrar tu máquina. Si no aparece, usa la receta general.';
+    panel.append(heading, info);
+    return;
+  }
+  heading.textContent = `${selected.brand} · ${selected.model}${selected.partial ? ' · guía en preparación' : ''}`;
+  const strengthInput = $('#manualStrengthSetting');
+  if (strengthInput) {
+    if (selected.id === 'cecotec-cube') strengthInput.value = 'no-disponible';
+    else if (strengthInput.value === 'no-disponible') strengthInput.value = 'media';
+  }
+  const list = document.createElement('ol');
+  list.replaceChildren(...selected.steps.map((step) => {
+    const item = document.createElement('li'); item.textContent = step; return item;
+  }));
+  const note = document.createElement('p'); note.textContent = selected.note;
+  const source = document.createElement('a');
+  source.href = selected.source; source.target = '_blank'; source.rel = 'noopener noreferrer';
+  source.textContent = 'Ver documentación oficial';
+  panel.append(heading, list, note, source);
+  if (selected.extraSource) {
+    const extra = document.createElement('a');
+    extra.href = selected.extraSource; extra.target = '_blank'; extra.rel = 'noopener noreferrer';
+    extra.textContent = 'Ver cómo guardar el volumen de la taza';
+    panel.append(extra);
+  }
+}
+
+$('#manualModel').addEventListener('input', renderMachineLookup);
 
 function renderManualMethod() {
   const guide = MANUAL_METHODS[manualMethod.value];
@@ -171,6 +229,7 @@ function renderManualMethod() {
   }));
   const linked = guide.kind === 'espresso' || guide.kind === 'filter';
   $('#manualForm').hidden = linked;
+  $('#machineLookup').hidden = guide.kind !== 'superauto';
   $('#manualFields').replaceChildren();
   if (linked) {
     if (guide.kind === 'filter' && filterFields.method.value !== guide.filterMethod) {
@@ -185,7 +244,9 @@ function renderManualMethod() {
     else render();
     return;
   }
-  $('#manualCalibrationIntro').textContent = 'Cambia los valores de tu prueba y marca cómo sabe. La orientación se actualiza al momento.';
+  $('#manualCalibrationIntro').textContent = guide.kind === 'superauto'
+    ? 'Anota lo que salió en la taza, el volumen que buscas y cómo sabe. Cambia un ajuste cada vez.'
+    : 'Cambia los valores de tu prueba y marca cómo sabe. La orientación se actualiza al momento.';
   if (guide.kind === 'ratio' || guide.kind === 'cold') {
     const defaults = guide.defaults;
     if (guide.kind === 'cold') addManualField({ id: 'manualBrewStyle', label: 'Tipo de preparación', options: [['concentrate', 'Concentrado para diluir'], ['ready', 'Listo para tomar']] });
@@ -199,9 +260,11 @@ function renderManualMethod() {
     addManualField({ id: 'manualBasketLevel', label: 'Cestillo lleno, sin prensar', type: 'checkbox', value: true });
     addManualField({ id: 'manualHeat', label: 'Calor usado', options: [['low', 'Bajo'], ['medium', 'Medio'], ['high', 'Alto']] });
   } else {
-    addManualField({ id: 'manualModel', label: 'Modelo de máquina', type: 'text', value: '' });
-    addManualField({ id: 'manualStrengthSetting', label: 'Intensidad en la máquina', options: [['baja', 'Baja'], ['media', 'Media'], ['alta', 'Alta']] });
-    addManualField({ id: 'manualVolume', label: 'Volumen de taza · ml', value: 40, max: 500, step: '1' });
+    renderMachineLookup();
+    const strengthInput = addManualField({ id: 'manualStrengthSetting', label: 'Intensidad en la máquina', options: [['baja', 'Baja'], ['media', 'Media'], ['alta', 'Alta'], ['no-disponible', 'No disponible en este modelo']] });
+    strengthInput.value = 'alta';
+    addManualField({ id: 'manualVolume', label: 'Volumen obtenido en taza · ml', value: 40, max: 500, step: '1' });
+    addManualField({ id: 'manualTargetVolume', label: 'Volumen deseado en taza · ml', value: '', max: 500, step: '1' });
     addManualField({ id: 'manualGrinderSetting', label: 'Punto de molienda de la máquina', type: 'text', value: '' });
   }
   renderManualFeedback();
