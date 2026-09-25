@@ -1,7 +1,7 @@
 {
   "name": "Peppos Dial-In",
   "short_name": "Peppos",
-  "description": "Calibrador profesional de recetas de espresso.",
+  "description": "Academy Peppos: manual de recetas y calibrador de café de especialidad.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#090908",

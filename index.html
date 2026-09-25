@@ -4,19 +4,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#171713" />
-    <meta name="description" content="Calibrador profesional de espresso para Peppos Coffee Academy." />
+    <meta name="description" content="Calibrador de espresso y café filtrado para Peppos Coffee Academy." />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/icons/pepos-icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/icons/pepos-icon-192.png" />
     <link rel="stylesheet" href="/src/styles.css" />
     <title>Peppos Dial-In</title>
   </head>
-  <body>
+  <body data-experience="home">
     <div class="app-shell">
       <header class="topbar">
         <a class="brand" href="#calibrador" aria-label="Peppos Dial-In, ir al calibrador">
           <img src="/assets/peppos-coffee-academy.jpeg" alt="Peppos Coffee Academy" />
-          <span class="product-name">DIAL-IN</span>
+          <span class="product-name">ACADEMY</span>
         </a>
         <div class="top-actions">
           <span class="network-status" id="networkStatus"><i></i><span>Offline listo</span></span>
@@ -32,13 +32,50 @@
       <main id="calibrador">
         <section class="intro-band" aria-labelledby="pageTitle">
           <div>
-            <p class="eyebrow">Calibración de espresso</p>
-            <h1 id="pageTitle">Afina el punto.<br />Repite el resultado.</h1>
+            <p class="eyebrow" id="methodEyebrow">Calibración de café de especialidad</p>
+            <h1 id="pageTitle">Afina el punto y saca el mejor partido del café de Peppo’s.</h1>
           </div>
-          <p class="intro-copy">Introduce la receta real. Peppos separa el ajuste de ratio del ajuste de molienda.</p>
+          <p class="intro-copy" id="methodIntro">Introduce la receta real. Peppos separa el ajuste de ratio del ajuste de molienda.</p>
         </section>
 
-        <section class="workspace">
+        <div class="experience-switch" role="group" aria-label="Nivel de detalle">
+          <span>Estoy preparando café</span>
+          <button type="button" data-experience="home" aria-pressed="true">En casa</button>
+          <button type="button" data-experience="professional" aria-pressed="false">Profesional</button>
+        </div>
+
+        <section class="manual-workspace" id="manualWorkspace" aria-labelledby="manualTitle">
+          <div class="section-heading"><div><span class="step-number">01</span><h2 id="manualTitle">Elige tu método y encuentra la receta</h2></div></div>
+          <p class="manual-intro">Elige cómo preparas tu café. Empieza con una receta clara, prueba la taza y ajusta una variable cada vez.</p>
+          <label class="manual-method-label"><span>Método de preparación</span><select id="manualMethod" aria-describedby="manualMethodHelp"></select></label>
+          <p class="manual-selector-help" id="manualMethodHelp">Selecciona un método para ver la receta y su calibrador.</p>
+          <div class="manual-layout" id="manualLayout">
+            <article class="manual-recipe" aria-labelledby="manualRecipeTitle">
+              <p class="eyebrow" id="manualRecipeType">Punto de partida</p>
+              <h3 id="manualRecipeTitle"></h3>
+              <p id="manualRecipeLead"></p>
+              <div class="manual-recipe-metrics" id="manualRecipeMetrics"></div>
+              <h4>Prepáralo paso a paso</h4>
+              <ol id="manualRecipeSteps"></ol>
+              <p class="manual-recipe-note" id="manualRecipeNote"></p>
+              <a id="manualRecipeSource" target="_blank" rel="noopener noreferrer">Ver referencia del método</a>
+            </article>
+            <form class="manual-calibration" id="manualForm" autocomplete="off">
+              <h3>Calibra esta receta</h3>
+              <p class="manual-calibration-intro" id="manualCalibrationIntro"></p>
+              <div class="manual-fields" id="manualFields"></div>
+              <div class="manual-taste-fields" id="manualTasteFields">
+                <label><span>Sabor de la taza</span><select id="manualTaste"><option value="untried">Todavía no la he probado</option><option value="balanced">Equilibrado</option><option value="sour">Ácido o poco desarrollado</option><option value="bitter">Amargo o seco</option><option value="uneven">Ácido y amargo a la vez</option></select></label>
+                <label><span>Intensidad</span><select id="manualStrength"><option value="balanced">A mi gusto</option><option value="weak">Demasiado ligera</option><option value="strong">Demasiado intensa</option></select></label>
+              </div>
+              <details class="manual-advanced pro-only"><summary>Detalles para baristas y personas curiosas</summary><div class="manual-fields"><label><span>Temperatura del agua, si la mides</span><input id="manualTemperature" type="number" inputmode="decimal" min="0" max="100" step="0.5" placeholder="Opcional · °C" /></label><label><span>Ajuste de molienda o técnica</span><input id="manualGrindNote" type="text" maxlength="80" placeholder="Ej.: 18 clics, molienda media" /></label><label class="manual-full"><span>Observaciones de preparación</span><textarea id="manualTechniqueNote" rows="3" maxlength="250" placeholder="Ej.: vertido, agitación, filtro, calor…"></textarea></label></div></details>
+              <div class="manual-feedback" aria-live="polite"><strong id="manualFeedbackTitle"></strong><p id="manualFeedbackText"></p><p id="manualTargetText"></p></div>
+              <p class="manual-advice">La orientación es una prueba guiada, no una medida directa de extracción. Mantén constantes los demás factores y vuelve a probar.</p>
+            </form>
+          </div>
+        </section>
+
+        <section class="workspace" id="espressoWorkspace">
           <form class="recipe-panel" id="recipeForm" autocomplete="off">
             <div class="section-heading">
               <div>
@@ -47,11 +84,12 @@
               </div>
               <button class="text-button" id="resetButton" type="button">Reiniciar</button>
             </div>
+            <button class="text-button back-to-method" type="button">← Elegir otro método</button>
 
             <fieldset class="ratio-fieldset">
               <legend>Ratio deseado</legend>
               <div class="segmented" id="ratioPresets">
-                <button type="button" data-ratio="1.5">1:1,5</button>
+                <button type="button" data-ratio="1.5">Ristretto · 1:1,5</button>
                 <button type="button" data-ratio="2" class="active">1:2</button>
                 <button type="button" data-ratio="2.5">1:2,5</button>
                 <button type="button" data-ratio="3">1:3</button>
@@ -84,11 +122,20 @@
               </button>
             </div>
 
-            <details class="advanced-settings">
+            <details class="advanced-settings pro-only">
               <summary>Ventana de tiempo objetivo <span id="timeRangeSummary">25–35 s</span></summary>
               <div class="field-grid compact-fields">
                 <label><span>Mínimo</span><span class="input-with-unit"><input id="minTime" type="number" inputmode="decimal" min="5" max="90" step="1" value="25" /><b>s</b></span></label>
                 <label><span>Máximo</span><span class="input-with-unit"><input id="maxTime" type="number" inputmode="decimal" min="6" max="120" step="1" value="35" /><b>s</b></span></label>
+              </div>
+            </details>
+            <details class="advanced-settings coffee-context pro-only">
+              <summary>Contexto del café · opcional</summary>
+              <p>Para comparar el mismo café con más precisión. El proceso se elige en la ficha de guardado.</p>
+              <div class="manual-fields">
+                <label><span>Lote u origen</span><input id="espressoLot" type="text" maxlength="80" placeholder="Ej.: finca, lote o mezcla" /></label>
+                <label><span>Fecha de tueste</span><input id="espressoRoastDate" type="date" /></label>
+                <label class="manual-full"><span>Sabor que buscas</span><input id="espressoFlavorGoal" type="text" maxlength="120" placeholder="Ej.: dulce, limpio, con notas de chocolate" /></label>
               </div>
             </details>
           </form>
@@ -99,7 +146,7 @@
                 <span class="step-number">02</span>
                 <h2 id="resultTitle">Diagnóstico</h2>
               </div>
-              <span class="status-badge" id="overallStatus">En punto</span>
+              <span class="status-badge" id="overallStatus">Falta probar la taza</span>
             </div>
 
             <div class="result-focus">
@@ -122,9 +169,9 @@
                 <svg viewBox="0 0 24 24"><path d="M12 4v16m0 0 6-6m-6 6-6-6"/></svg>
               </span>
               <div>
-                <span class="micro-label">Ajuste del molinillo</span>
-                <h3 id="grindTitle">Mantén el punto</h3>
-                <p id="grindDescription">El flujo estimado está dentro de la ventana objetivo.</p>
+                <span class="micro-label">Lectura del flujo · provisional</span>
+                <h3 id="grindTitle">Flujo dentro de ventana</h3>
+                <p id="grindDescription">El flujo estimado está dentro de la ventana objetivo. Falta probar la taza.</p>
               </div>
             </div>
 
@@ -133,13 +180,68 @@
               <div><span>Desvío de bebida</span><strong id="yieldDeltaDisplay">0,0 g</strong></div>
             </div>
 
+            <div class="espresso-tasting">
+              <label for="espressoTaste"><span>03 · Prueba la taza</span></label>
+              <select id="espressoTaste">
+                <option value="untried">Todavía no la he probado</option>
+                <option value="balanced">Me gusta · equilibrada</option>
+                <option value="sour">Ácida o poco desarrollada</option>
+                <option value="bitter">Amarga o seca</option>
+                <option value="uneven">Ácida y amarga a la vez</option>
+              </select>
+              <strong id="espressoTasteTitle">Prueba la taza primero</strong>
+              <p id="espressoTasteExplanation">El ratio y el tiempo describen esta preparación; aún no confirman el sabor.</p>
+              <p class="espresso-next" id="espressoNextAction"></p>
+            </div>
+
+            <div class="espresso-comparison pro-only">
+              <button class="text-button" id="compareLastButton" type="button" aria-expanded="false">Comparar con el último registro</button>
+              <p id="compareLastText" hidden></p>
+            </div>
+
             <ol class="action-list" id="actionList">
               <li><span>1</span><p>Mantén la dosis en <strong>18,0 g</strong>.</p></li>
               <li><span>2</span><p>Detén la extracción en <strong>36,0 g</strong>.</p></li>
               <li><span>3</span><p>Mantén el ajuste actual del molinillo.</p></li>
             </ol>
 
-            <p class="caution" id="cautionText" hidden>El tiempo al objetivo es una estimación. Confirma el ajuste con un nuevo espresso y con la evaluación sensorial.</p>
+            <p class="caution" id="cautionText">El tiempo al objetivo es una pista estimada. Prueba la taza para decidir; ningún ratio ni sabor por sí solo demuestra una extracción ideal.</p>
+          </section>
+        </section>
+
+        <section class="workspace filter-workspace" id="filterWorkspace" hidden>
+          <form class="recipe-panel" id="filterForm" autocomplete="off">
+            <div class="section-heading"><div><span class="step-number">01</span><h2>Receta de filtro</h2></div></div>
+            <button class="text-button back-to-method" type="button">← Elegir otro método</button>
+            <input id="filterMethod" type="hidden" value="v60" />
+            <fieldset class="ratio-fieldset">
+              <legend>Agua por cada gramo de café · ratio deseado</legend>
+              <div class="segmented filter-ratios" id="filterRatioPresets">
+                <button type="button" data-filter-ratio="15">1:15</button>
+                <button type="button" data-filter-ratio="16">1:16</button>
+                <button type="button" data-filter-ratio="16.7" class="active">1:16,7</button>
+                <button type="button" data-filter-ratio="17">1:17</button>
+              </div>
+              <label class="inline-custom"><span>Personalizado</span><span class="input-with-prefix"><b>1:</b><input id="filterTargetRatio" type="number" inputmode="decimal" min="10" max="22" step="0.1" value="16.7" required /></span></label>
+            </fieldset>
+            <div class="field-grid measurements">
+              <label><span>Dosis seca</span><span class="input-with-unit"><input id="filterDose" type="number" inputmode="decimal" min="5" max="100" step="0.1" value="15" required /><b>g</b></span></label>
+              <label><span>Agua vertida</span><span class="input-with-unit"><input id="filterWater" type="number" inputmode="decimal" min="50" max="2000" step="1" value="250" required /><b>g</b></span></label>
+            </div>
+            <div class="field-grid filter-observations">
+              <label><span>Tiempo total orientativo</span><span class="input-with-unit"><input id="filterTime" type="number" inputmode="decimal" min="0" max="1800" step="1" value="180" /><b>s</b></span></label>
+              <label><span>Sabor percibido</span><select id="filterTaste"><option value="balanced">Dulce y equilibrado</option><option value="sour">Ácido, vegetal o poco desarrollado</option><option value="bitter">Amargo, seco o astringente</option><option value="uneven">Ácido y amargo a la vez</option></select></label>
+            </div>
+            <label class="filter-strength-label"><span>Intensidad en taza</span><select id="filterStrength"><option value="balanced">Equilibrada</option><option value="weak">Demasiado ligera</option><option value="strong">Demasiado intensa</option></select></label>
+            <p class="filter-reference" id="filterReference"></p>
+          </form>
+          <section class="result-panel filter-result" aria-live="polite" aria-labelledby="filterResultTitle">
+            <div class="section-heading inverse"><div><span class="step-number">02</span><h2 id="filterResultTitle">Orientación</h2></div><span class="status-badge" id="filterStatus">Punto de partida</span></div>
+            <div class="filter-ratio-result"><span>Ratio real de preparación</span><strong id="filterActualRatio">1:16,7</strong><small id="filterTargetText">Objetivo 1:16,7</small></div>
+            <div class="filter-target"><span>Agua para tu dosis y objetivo</span><strong><span id="filterTargetWater">250</span> g</strong><p id="filterWaterGuidance"></p></div>
+            <div class="grind-direction filter-direction"><span class="direction-icon" id="filterDirectionIcon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4v16m0 0 6-6m-6 6-6-6"/></svg></span><div><span class="micro-label">Siguiente prueba</span><h3 id="filterGrindTitle">Mantén el punto</h3><p id="filterGrindDescription"></p></div></div>
+            <ol class="action-list" id="filterActionList"></ol>
+            <p class="caution">El tiempo ayuda a repetir la receta; no demuestra por sí solo si el café está bien extraído. Prueba la taza y cambia una variable cada vez.</p>
           </section>
         </section>
 
@@ -152,8 +254,10 @@
           </div>
           <div class="save-fields">
             <label><span>Cliente o local</span><input id="clientName" type="text" placeholder="Peppos Coffee Centro" maxlength="60" /></label>
-            <label><span>Máquina</span><input id="machineName" type="text" placeholder="La Marzocco Linea PB" maxlength="60" /></label>
-            <label><span>Molinillo</span><input id="grinderName" type="text" placeholder="Mahlkönig E65S" maxlength="60" /></label>
+            <label><span>Café Peppos</span><input id="coffeeName" type="text" placeholder="Escribe el nombre del café" maxlength="80" /></label>
+            <label class="pro-only"><span>Proceso del café · opcional</span><select id="coffeeProcess"><option value="">Sin indicar</option><option value="washed">Lavado</option><option value="honey">Honey</option><option value="natural">Natural</option><option value="cofermented">Cofermentado</option><option value="other">Otro / no lo sé</option></select></label>
+            <label class="pro-only"><span>Máquina</span><input id="machineName" type="text" placeholder="La Marzocco Linea PB" maxlength="60" /></label>
+            <label class="pro-only"><span>Molinillo</span><input id="grinderName" type="text" placeholder="Mahlkönig E65S" maxlength="60" /></label>
             <label><span>Café / notas</span><input id="coffeeNotes" type="text" placeholder="Blend casa · dulce y equilibrado" maxlength="100" /></label>
           </div>
           <button class="primary-button" id="saveButton" type="button">
@@ -187,6 +291,8 @@
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <script src="/src/calculator.js" defer></script>
+    <script src="/src/filter-calculator.js" defer></script>
+    <script src="/src/manual-calculator.js" defer></script>
     <script src="/src/app.js" defer></script>
   </body>
 </html>
