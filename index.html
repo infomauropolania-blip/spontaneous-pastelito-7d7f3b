@@ -12,14 +12,45 @@
     <title>Peppos Dial-In</title>
   </head>
   <body data-experience="home">
-    <div class="app-shell">
+    <div class="access-gate" id="academyAccessGate" aria-live="polite">
+      <div class="access-card">
+        <img src="/assets/peppos-coffee-academy.jpeg" alt="Peppos Coffee Academy" />
+        <h1>Acceso a Academy</h1>
+        <p id="academyAccessMessage">Comprobando tu acceso…</p>
+        <form id="academyLoginForm" hidden>
+          <h2>Entrar</h2>
+          <label><span>Correo electrónico</span><input name="email" type="email" autocomplete="email" required /></label>
+          <label><span>Contraseña</span><input name="password" type="password" autocomplete="current-password" required /></label>
+          <button class="primary-button" type="submit">Entrar</button>
+          <button class="text-button" id="showAcademySignup" type="button">Solicitar acceso</button>
+        </form>
+        <form id="academySignupForm" hidden>
+          <h2>Crear cuenta</h2>
+          <label><span>Tu nombre</span><input name="name" minlength="2" maxlength="100" autocomplete="name" required /></label>
+          <label><span>Correo electrónico</span><input name="email" type="email" autocomplete="email" required /></label>
+          <label><span>Contraseña</span><input name="password" type="password" minlength="8" autocomplete="new-password" required /></label>
+          <label><span>Nombre del local</span><input name="local" minlength="2" maxlength="100" autocomplete="organization" required /></label>
+          <button class="primary-button" type="submit">Crear cuenta</button>
+          <button class="text-button" id="showAcademyLogin" type="button">Ya tengo cuenta</button>
+        </form>
+        <form id="academyRequestForm" hidden>
+          <h2>Solicitar acceso</h2>
+          <label><span>Tu nombre</span><input name="name" minlength="2" maxlength="100" autocomplete="name" required /></label>
+          <label><span>Nombre del local</span><input name="local" minlength="2" maxlength="100" autocomplete="organization" required /></label>
+          <p>El administrador comprobará el local y aprobará tu acceso.</p>
+          <button class="primary-button" type="submit">Enviar solicitud</button>
+        </form>
+        <button class="text-button" id="academySignOut" type="button" hidden>Cerrar sesión</button>
+      </div>
+    </div>
+    <div class="app-shell" hidden>
       <header class="topbar">
         <a class="brand" href="#calibrador" aria-label="Peppos Dial-In, ir al calibrador">
           <img src="/assets/peppos-coffee-academy.jpeg" alt="Peppos Coffee Academy" />
           <span class="product-name">ACADEMY</span>
         </a>
         <div class="top-actions">
-          <span class="network-status" id="networkStatus"><i></i><span>Offline listo</span></span>
+          <span class="network-status" id="networkStatus"><i></i><span>Con conexión</span></span>
           <button class="icon-button install-button" id="installButton" type="button" hidden title="Instalar aplicación" aria-label="Instalar aplicación">
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 21h14"/></svg>
           </button>
@@ -274,7 +305,7 @@
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5V3Zm3 0v6h8V3M8 21v-7h8v7"/></svg>
             Guardar registro
           </button>
-          <p class="storage-note">Se guarda únicamente en este dispositivo.</p>
+          <p class="storage-note">Las calibraciones nuevas se guardan en el historial central del local. Los registros anteriores de este dispositivo permanecen aquí.</p>
         </section>
 
         <section class="history-section" id="history" aria-labelledby="historyTitle">
@@ -304,6 +335,7 @@
     <script src="/src/filter-calculator.js" defer></script>
     <script src="/src/manual-calculator.js" defer></script>
     <script src="/src/machine-guides.js" defer></script>
+    <script src="/src/access.bundle.js" defer></script>
     <script src="/src/app.js" defer></script>
   </body>
 </html>
