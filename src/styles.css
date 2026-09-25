@@ -266,8 +266,11 @@ footer p { margin: 0; font-size: 13px; }
   .manual-fields, .manual-taste-fields { grid-template-columns: 1fr; }
   .filter-observations { grid-template-columns:1fr; }
   .topbar { height: 64px; padding: 0 16px; }
-  .brand img { width: 112px; height: 41px; }
-  .product-name { display: none; }
+  .brand { min-width: 0; gap: 6px; }
+  .brand img { width: 92px; height: 34px; }
+  .product-name { padding-left: 6px; font-size: 9px; letter-spacing: 1px; }
+  .top-actions { gap: 6px; }
+  .icon-button { width: 36px; height: 36px; }
   .network-status span { display: none; }
   main { padding: 0 16px; }
   .intro-band { min-height: 210px; padding: 32px 0; }
