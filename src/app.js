@@ -493,7 +493,7 @@ $('#compareLastButton').addEventListener('click', () => {
   if (!$('#compareLastText').hidden) renderComparison();
 }));
 
-$('#saveButton').addEventListener('click', () => {
+$('#saveButton').addEventListener('click', async () => {
   const result = activeMethod === 'manual' ? currentManualResult() : activeMethod === 'filter' ? currentFilterResult() : calculate();
   if (!result) return showToast('Revisa los valores de la receta');
   const coffeeName = $('#coffeeName').value.trim();
@@ -521,8 +521,15 @@ $('#saveButton').addEventListener('click', () => {
       techniqueNote: $('#manualTechniqueNote').value.trim()
     } : {})
   };
-  setRecords([record, ...getRecords()].slice(0, 100));
-  showToast('Calibración guardada');
+  const button = $('#saveButton');
+  button.disabled = true;
+  try {
+    const saved = await window.PepposAcademyAccess.saveRecord(record);
+    setRecords([saved, ...getRecords()].slice(0, 100));
+    showToast('Calibración guardada en el historial del local');
+  } catch (error) {
+    showToast(error.message || 'No se pudo guardar la calibración');
+  } finally { button.disabled = false; }
 });
 
 function renderHistory() {
@@ -599,7 +606,7 @@ function showToast(message) {
 
 function updateNetworkStatus() {
   const label = $('#networkStatus span');
-  label.textContent = navigator.onLine ? 'Con conexión' : 'Offline listo';
+  label.textContent = navigator.onLine ? 'Con conexión' : 'Necesita conexión';
   $('#networkStatus i').style.background = navigator.onLine ? '#b9d87b' : '#f2c85b';
 }
 window.addEventListener('online', updateNetworkStatus);
