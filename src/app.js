@@ -162,7 +162,7 @@ function renderManualMethod() {
   $('#manualRecipeLead').textContent = guide.lead;
   $('#manualRecipeNote').textContent = guide.note;
   $('#manualRecipeSource').href = guide.source;
-  $('#manualRecipeSource').textContent = guide.kind === 'espresso' ? 'Leer referencia SCA' : 'Ver referencia del método';
+  $('#manualRecipeSource').textContent = 'Consultar fuente original (puede estar en inglés)';
   $('#manualRecipeMetrics').replaceChildren(...guide.metrics.map((metric) => {
     const item = document.createElement('span'); item.textContent = metric; return item;
   }));

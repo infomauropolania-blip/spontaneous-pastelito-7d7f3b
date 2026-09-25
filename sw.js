@@ -1,4 +1,4 @@
-const CACHE = 'peppos-academy-v5.4-unified-methods';
+const CACHE = 'peppos-academy-v5.5-spanish-references';
 const APP_SHELL = ['/', '/src/styles.css', '/src/calculator.js', '/src/filter-calculator.js', '/src/manual-calculator.js', '/src/app.js', '/manifest.webmanifest', '/assets/peppos-coffee-academy.jpeg', '/icons/pepos-icon.svg', '/icons/pepos-icon-192.png', '/icons/pepos-icon-512.png'];
 
 self.addEventListener('install', (event) => {
