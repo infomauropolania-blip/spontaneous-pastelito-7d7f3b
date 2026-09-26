@@ -1,12 +1,13 @@
-import { getUser, handleAuthCallback, login, logout, signup } from '@netlify/identity';
+import { getUser, handleAuthCallback, login, logout, requestPasswordRecovery, signup, updateUser } from '@netlify/identity';
 
 const gate = document.querySelector('#academyAccessGate');
 const shell = document.querySelector('.app-shell');
 const message = document.querySelector('#academyAccessMessage');
-const forms = ['academyLoginForm', 'academySignupForm', 'academyRequestForm'].map((id) => document.getElementById(id));
+const forms = ['academyLoginForm', 'academySignupForm', 'academyRequestForm', 'academyRecoveryForm', 'academyResetForm'].map((id) => document.getElementById(id));
 const signOut = document.querySelector('#academySignOut');
 const loginFeedback = document.querySelector('#academyLoginFeedback');
 const resendConfirmation = document.querySelector('#resendAcademyConfirmation');
+const recoveryPendingKey = 'academy-password-recovery';
 let approved = false;
 
 function view(formId = '') {
@@ -98,6 +99,44 @@ document.getElementById('showAcademyLogin').addEventListener('click', () => {
   loginNotice('Entra con el correo y la contraseña de una cuenta existente.');
   view('academyLoginForm');
 });
+document.getElementById('showAcademyRecovery').addEventListener('click', () => {
+  document.querySelector('#academyRecoveryForm').elements.email.value = document.querySelector('#academyLoginForm').elements.email.value.trim();
+  notice('Indica el correo de tu cuenta. Recibirás un enlace para cambiar la contraseña.');
+  view('academyRecoveryForm');
+});
+document.getElementById('backToAcademyLogin').addEventListener('click', () => {
+  loginNotice('Entra con el correo y la contraseña de tu cuenta.');
+  view('academyLoginForm');
+});
+document.getElementById('academyRecoveryForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector('[type="submit"]');
+  button.disabled = true;
+  try {
+    await requestPasswordRecovery(form.elements.email.value.trim());
+    view();
+    notice('Si ese correo tiene una cuenta de Academy, recibirás un enlace para crear una contraseña nueva. Revisa también el correo no deseado.');
+  } catch (error) { notice(friendlyError(error)); }
+  finally { button.disabled = false; }
+});
+document.getElementById('academyResetForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector('[type="submit"]');
+  if (form.elements.password.value !== form.elements.confirmPassword.value) {
+    notice('Las contraseñas no coinciden. Escríbelas otra vez.');
+    return;
+  }
+  button.disabled = true;
+  try {
+    await updateUser({ password: form.elements.password.value });
+    sessionStorage.removeItem(recoveryPendingKey);
+    form.reset();
+    await refreshAccess();
+  } catch (error) { notice(friendlyError(error)); }
+  finally { button.disabled = false; }
+});
 document.getElementById('academyLoginForm').addEventListener('submit', async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
@@ -174,8 +213,16 @@ window.PepposAcademyAccess = {
   }
 };
 
-handleAuthCallback().catch((error) => notice(friendlyError(error)))
+handleAuthCallback().then((result) => {
+  if (result?.type === 'recovery') sessionStorage.setItem(recoveryPendingKey, '1');
+}).catch((error) => notice(friendlyError(error)))
   .finally(async () => {
+    if (sessionStorage.getItem(recoveryPendingKey) === '1' && await getUser()) {
+      notice('Enlace verificado. Crea ahora tu contraseña nueva.');
+      view('academyResetForm');
+      return;
+    }
+    sessionStorage.removeItem(recoveryPendingKey);
     const draft = sessionStorage.getItem('academy-request-draft');
     await refreshAccess();
     if (draft && !document.getElementById('academyRequestForm').hidden) {
