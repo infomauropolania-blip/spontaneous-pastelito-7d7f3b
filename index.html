@@ -16,22 +16,26 @@
       <div class="access-card">
         <img src="/assets/peppos-coffee-academy.jpeg" alt="Peppos Coffee Academy" />
         <h1>Acceso a Academy</h1>
-        <p id="academyAccessMessage">Comprobando tu acceso…</p>
+        <p id="academyAccessMessage" role="status">Comprobando tu acceso…</p>
         <form id="academyLoginForm" hidden>
-          <h2>Entrar</h2>
+          <h2>Ya tengo acceso</h2>
           <label><span>Correo electrónico</span><input name="email" type="email" autocomplete="email" required /></label>
           <label><span>Contraseña</span><input name="password" type="password" autocomplete="current-password" required /></label>
           <button class="primary-button" type="submit">Entrar</button>
-          <button class="text-button" id="showAcademySignup" type="button">Solicitar acceso</button>
+          <p id="academyLoginFeedback" class="access-feedback" role="alert" hidden></p>
+          <button class="text-button" id="resendAcademyConfirmation" type="button" hidden>Reenviar correo de confirmación</button>
+          <button class="text-button" id="showAcademySignup" type="button">¿Primera vez? Solicitar acceso</button>
         </form>
         <form id="academySignupForm" hidden>
-          <h2>Crear cuenta</h2>
+          <h2>Solicitar acceso</h2>
+          <p>Indica tus datos y tu local. El administrador confirmará que pertenece a Peppos.</p>
           <label><span>Tu nombre</span><input name="name" minlength="2" maxlength="100" autocomplete="name" required /></label>
+          <label><span>Nombre del local</span><input name="local" minlength="2" maxlength="100" autocomplete="organization" required /></label>
           <label><span>Correo electrónico</span><input name="email" type="email" autocomplete="email" required /></label>
           <label><span>Contraseña</span><input name="password" type="password" minlength="8" autocomplete="new-password" required /></label>
-          <label><span>Nombre del local</span><input name="local" minlength="2" maxlength="100" autocomplete="organization" required /></label>
-          <button class="primary-button" type="submit">Crear cuenta</button>
-          <button class="text-button" id="showAcademyLogin" type="button">Ya tengo cuenta</button>
+          <p>Crea una contraseña para entrar cuando se apruebe tu solicitud. Antes tendrás que confirmar tu correo.</p>
+          <button class="primary-button" type="submit">Solicitar acceso</button>
+          <button class="text-button" id="showAcademyLogin" type="button">Ya tengo acceso · Entrar</button>
         </form>
         <form id="academyRequestForm" hidden>
           <h2>Solicitar acceso</h2>
