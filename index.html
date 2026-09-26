@@ -24,7 +24,22 @@
           <button class="primary-button" type="submit">Entrar</button>
           <p id="academyLoginFeedback" class="access-feedback" role="alert" hidden></p>
           <button class="text-button" id="resendAcademyConfirmation" type="button" hidden>Reenviar correo de confirmación</button>
+          <button class="text-button" id="showAcademyRecovery" type="button">¿Has olvidado tu contraseña?</button>
           <button class="text-button" id="showAcademySignup" type="button">¿Primera vez? Solicitar acceso</button>
+        </form>
+        <form id="academyRecoveryForm" hidden>
+          <h2>Recuperar contraseña</h2>
+          <p>Te enviaremos un enlace a tu correo para crear una contraseña nueva. No necesitas registrarte otra vez.</p>
+          <label><span>Correo electrónico</span><input name="email" type="email" autocomplete="email" required /></label>
+          <button class="primary-button" type="submit">Enviar enlace</button>
+          <button class="text-button" id="backToAcademyLogin" type="button">Volver a entrar</button>
+        </form>
+        <form id="academyResetForm" hidden>
+          <h2>Crear nueva contraseña</h2>
+          <p>Escribe una contraseña nueva para tu cuenta de Academy.</p>
+          <label><span>Nueva contraseña</span><input name="password" type="password" minlength="8" autocomplete="new-password" required /></label>
+          <label><span>Repite la contraseña</span><input name="confirmPassword" type="password" minlength="8" autocomplete="new-password" required /></label>
+          <button class="primary-button" type="submit">Guardar contraseña</button>
         </form>
         <form id="academySignupForm" hidden>
           <h2>Solicitar acceso</h2>
