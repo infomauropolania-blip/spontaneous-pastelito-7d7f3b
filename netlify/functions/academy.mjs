@@ -3,9 +3,7 @@ import { getStore, getDeployStore } from '@netlify/blobs';
 import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { cleanText, dayInMadrid, groupDaily, normalizeRecord, publicProfile, validDay } from '../../src/academy-access-core.mjs';
 
-const store = () => Netlify.context?.deploy?.context === 'production'
-  ? getStore({ name: 'peppos-academy-v1', consistency: 'strong' })
-  : getDeployStore({ name: 'peppos-academy-v1', consistency: 'strong' });
+
 const json = (data, status = 200) => Response.json(data, { status, headers: { 'Cache-Control': 'no-store' } });
 const error = (message, status = 400) => json({ error: message }, status);
 function bridgeAdmin(req) {
@@ -17,18 +15,22 @@ function bridgeAdmin(req) {
 const profileKey = (id) => `profiles/${id}`;
 const recordKey = (record) => `records/${record.day}/${record.localId}/${record.id}`;
 const localKey = (id) => `locals/${id}`;
-async function read(key) { return store().get(key, { type: 'json' }); }
-async function write(key, value) { return store().setJSON(key, value); }
-async function list(prefix) {
-  const result = await store().list({ prefix });
-  return (await Promise.all(result.blobs.map((item) => read(item.key)))).filter(Boolean);
-}
+
 async function requestBody(req) {
   try { return await req.json(); } catch { return {}; }
 }
 
 export default async function handler(req, context) {
   try {
+    const store = () => context.deploy.context === 'production'
+      ? getStore({ name: 'peppos-academy-v1', consistency: 'strong' })
+      : getDeployStore({ name: 'peppos-academy-v1', consistency: 'strong' });
+    const read = (key) => store().get(key, { type: 'json' });
+    const write = (key, value) => store().setJSON(key, value);
+    const list = async (prefix) => {
+      const result = await store().list({ prefix });
+      return (await Promise.all(result.blobs.map((item) => read(item.key)))).filter(Boolean);
+    };
     const action = context.params.action;
     const method = req.method.toUpperCase();
     const isAdmin = bridgeAdmin(req);
