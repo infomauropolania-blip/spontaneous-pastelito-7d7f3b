@@ -6,6 +6,7 @@ const message = document.querySelector('#academyAccessMessage');
 const forms = ['academyLoginForm', 'academySignupForm', 'academyRequestForm', 'academyRecoveryForm', 'academyResetForm'].map((id) => document.getElementById(id));
 const signOut = document.querySelector('#academySignOut');
 const loginFeedback = document.querySelector('#academyLoginFeedback');
+const recoveryFeedback = document.querySelector('#academyRecoveryFeedback');
 const resendConfirmation = document.querySelector('#resendAcademyConfirmation');
 const recoveryPendingKey = 'academy-password-recovery';
 let approved = false;
@@ -27,6 +28,7 @@ function isUnconfirmed(error) { return /email not confirmed|correo no confirmado
 function friendlyError(error) {
   if (isUnconfirmed(error)) return 'Tu correo aún no está confirmado. Abre el enlace que te envió Academy o pulsa «Reenviar correo de confirmación».';
   if (/invalid.grant|invalid login|invalid credentials/i.test(error?.message || '')) return 'No se pudo entrar. Comprueba el correo y la contraseña.';
+  if (/rate.limit|too.many.requests/i.test(error?.message || '')) return 'Se ha solicitado un enlace hace poco. Espera unos minutos antes de intentarlo de nuevo y revisa tu correo.';
   return error?.message || 'No se pudo completar la operación.';
 }
 
@@ -101,6 +103,8 @@ document.getElementById('showAcademyLogin').addEventListener('click', () => {
 });
 document.getElementById('showAcademyRecovery').addEventListener('click', () => {
   document.querySelector('#academyRecoveryForm').elements.email.value = document.querySelector('#academyLoginForm').elements.email.value.trim();
+  recoveryFeedback.hidden = true;
+  recoveryFeedback.textContent = '';
   notice('Indica el correo de tu cuenta. Recibirás un enlace para cambiar la contraseña.');
   view('academyRecoveryForm');
 });
@@ -113,12 +117,14 @@ document.getElementById('academyRecoveryForm').addEventListener('submit', async 
   const form = event.currentTarget;
   const button = form.querySelector('[type="submit"]');
   button.disabled = true;
+  button.textContent = 'Enviando…';
+  recoveryFeedback.textContent = 'Solicitando el enlace de recuperación…';
+  recoveryFeedback.hidden = false;
   try {
     await requestPasswordRecovery(form.elements.email.value.trim());
-    view();
-    notice('Si ese correo tiene una cuenta de Academy, recibirás un enlace para crear una contraseña nueva. Revisa también el correo no deseado.');
-  } catch (error) { notice(friendlyError(error)); }
-  finally { button.disabled = false; }
+    recoveryFeedback.textContent = 'Si ese correo tiene una cuenta de Academy, recibirás un enlace para crear una contraseña nueva. Revisa también el correo no deseado.';
+  } catch (error) { recoveryFeedback.textContent = friendlyError(error); }
+  finally { button.disabled = false; button.textContent = 'Enviar enlace'; }
 });
 document.getElementById('academyResetForm').addEventListener('submit', async (event) => {
   event.preventDefault();
