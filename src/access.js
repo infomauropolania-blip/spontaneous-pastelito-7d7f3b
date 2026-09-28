@@ -8,6 +8,10 @@ const signOut = document.querySelector('#academySignOut');
 const loginFeedback = document.querySelector('#academyLoginFeedback');
 const recoveryFeedback = document.querySelector('#academyRecoveryFeedback');
 const resendConfirmation = document.querySelector('#resendAcademyConfirmation');
+const resendSignedInConfirmation = document.querySelector('#resendSignedInConfirmation');
+const resetForm = document.querySelector('#academyResetForm');
+const resetFeedback = document.querySelector('#academyResetFeedback');
+const toggleResetPasswords = document.querySelector('#toggleAcademyResetPasswords');
 const recoveryPendingKey = 'academy-password-recovery';
 let approved = false;
 
@@ -51,13 +55,16 @@ async function refreshAccess() {
   try {
     const user = await getUser();
     signOut.hidden = !user;
+    resendSignedInConfirmation.hidden = !user || Boolean(user.confirmedAt) || !user.confirmationSentAt;
     if (!user) {
       notice('¿Es tu primera vez? Solicita acceso con tu correo, nombre y local. Si ya tienes permiso, entra con tu cuenta.');
       view('academySignupForm');
       return;
     }
-    if (!user.emailVerified) {
-      notice('Confirma tu correo mediante el enlace que recibiste. Después, vuelve a abrir Academy.');
+    if (!user.confirmedAt) {
+      notice(user.confirmationSentAt
+        ? 'Confirma tu correo mediante el enlace que recibiste. Si no lo encuentras, puedes reenviarlo aquí.'
+        : 'No se pudo comprobar si tu correo está confirmado. Vuelve a abrir Academy con conexión; si continúa, consulta con el administrador de Peppos.');
       return;
     }
     const { profile } = await api('me');
@@ -126,22 +133,50 @@ document.getElementById('academyRecoveryForm').addEventListener('submit', async 
   } catch (error) { recoveryFeedback.textContent = friendlyError(error); }
   finally { button.disabled = false; button.textContent = 'Enviar enlace'; }
 });
-document.getElementById('academyResetForm').addEventListener('submit', async (event) => {
+function resetPasswordFeedback(text = '', invalid = false) {
+  resetFeedback.textContent = text;
+  resetFeedback.hidden = !text;
+  if (invalid) resetForm.elements.confirmPassword.setAttribute('aria-invalid', 'true');
+  else resetForm.elements.confirmPassword.removeAttribute('aria-invalid');
+}
+
+for (const field of [resetForm.elements.password, resetForm.elements.confirmPassword]) {
+  field.addEventListener('input', () => {
+    const { password, confirmPassword } = resetForm.elements;
+    resetPasswordFeedback(password.value && confirmPassword.value && password.value === confirmPassword.value
+      ? 'Las contraseñas coinciden.' : '');
+  });
+}
+toggleResetPasswords.addEventListener('click', () => {
+  const visible = toggleResetPasswords.getAttribute('aria-pressed') !== 'true';
+  for (const field of [resetForm.elements.password, resetForm.elements.confirmPassword]) field.type = visible ? 'text' : 'password';
+  toggleResetPasswords.setAttribute('aria-pressed', String(visible));
+  toggleResetPasswords.textContent = visible ? 'Ocultar contraseñas' : 'Mostrar contraseñas';
+});
+resetForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
   const button = form.querySelector('[type="submit"]');
   if (form.elements.password.value !== form.elements.confirmPassword.value) {
-    notice('Las contraseñas no coinciden. Escríbelas otra vez.');
+    resetPasswordFeedback('Las contraseñas no coinciden. Revísalas antes de guardar.', true);
+    form.elements.confirmPassword.focus();
     return;
   }
   button.disabled = true;
+  button.textContent = 'Guardando…';
+  resetPasswordFeedback('Guardando la contraseña…');
   try {
     await updateUser({ password: form.elements.password.value });
     sessionStorage.removeItem(recoveryPendingKey);
     form.reset();
+    resetPasswordFeedback();
+    for (const field of [form.elements.password, form.elements.confirmPassword]) field.type = 'password';
+    toggleResetPasswords.setAttribute('aria-pressed', 'false');
+    toggleResetPasswords.textContent = 'Mostrar contraseñas';
     await refreshAccess();
-  } catch (error) { notice(friendlyError(error)); }
-  finally { button.disabled = false; }
+    if (!gate.hidden) notice(`Contraseña guardada. ${message.textContent}`);
+  } catch (error) { resetPasswordFeedback(`No se pudo guardar la contraseña. ${friendlyError(error)}`, true); }
+  finally { button.disabled = false; button.textContent = 'Guardar contraseña'; }
 });
 document.getElementById('academyLoginForm').addEventListener('submit', async (event) => {
   event.preventDefault();
@@ -167,6 +202,26 @@ resendConfirmation.addEventListener('click', async () => {
   } catch (error) { loginNotice(friendlyError(error), true); }
   finally { resendConfirmation.disabled = false; }
 });
+resendSignedInConfirmation.addEventListener('click', async () => {
+  resendSignedInConfirmation.disabled = true;
+  notice('Enviando de nuevo el correo de confirmación…');
+  try {
+    const user = await getUser();
+    if (!user) throw new Error('La sesión ha caducado. Vuelve a entrar.');
+    if (user.confirmedAt) { await refreshAccess(); return; }
+    if (!user.id || !user.email || !user.confirmationSentAt) {
+      throw new Error('No se pudo verificar la cuenta existente. Vuelve a abrir Academy con conexión o consulta con el administrador.');
+    }
+    // GoTrue reenvía la confirmación de una cuenta existente aún sin verificar.
+    // La contraseña temporal solo satisface la validación del endpoint; no reemplaza la actual.
+    const temporaryPassword = Array.from(crypto.getRandomValues(new Uint8Array(24)),
+      (byte) => byte.toString(16).padStart(2, '0')).join('');
+    const result = await signup(user.email, temporaryPassword);
+    if (result.id !== user.id) throw new Error('No se pudo confirmar que la solicitud pertenezca a tu cuenta. Consulta con el administrador.');
+    notice('Reenvío solicitado. Revisa también el correo no deseado; si no llega, espera unos minutos antes de repetirlo.');
+  } catch (error) { notice(`No se pudo reenviar el correo. ${friendlyError(error)}`); }
+  finally { resendSignedInConfirmation.disabled = false; }
+});
 document.getElementById('academySignupForm').addEventListener('submit', async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
@@ -178,7 +233,7 @@ document.getElementById('academySignupForm').addEventListener('submit', async (e
     if (name.length < 2 || local.length < 2) throw new Error('Indica tu nombre y el nombre del local.');
     sessionStorage.setItem('academy-request-draft', JSON.stringify({ name, local }));
     const user = await signup(form.elements.email.value.trim(), form.elements.password.value, { full_name: name, academy_local: local });
-    if (user.emailVerified) await refreshAccess();
+    if (user.confirmedAt) await refreshAccess();
     else {
       view();
       notice('Te hemos enviado un enlace para confirmar el correo. Al abrirlo, Academy enviará tu solicitud al administrador. Revisa también el correo no deseado.');
