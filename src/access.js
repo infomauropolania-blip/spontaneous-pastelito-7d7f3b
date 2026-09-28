@@ -1,4 +1,5 @@
-import { getUser, handleAuthCallback, login, logout, requestPasswordRecovery, signup, updateUser } from '@netlify/identity';
+import { AUTH_EVENTS, getUser, handleAuthCallback, login, logout, onAuthChange, refreshSession, requestPasswordRecovery, signup, updateUser } from '@netlify/identity';
+import { persistIdentityCookies } from './identity-session.mjs';
 
 const gate = document.querySelector('#academyAccessGate');
 const shell = document.querySelector('.app-shell');
@@ -14,6 +15,12 @@ const resetFeedback = document.querySelector('#academyResetFeedback');
 const toggleResetPasswords = document.querySelector('#toggleAcademyResetPasswords');
 const recoveryPendingKey = 'academy-password-recovery';
 let approved = false;
+
+onAuthChange((event) => {
+  if ([AUTH_EVENTS.LOGIN, AUTH_EVENTS.RECOVERY, AUTH_EVENTS.TOKEN_REFRESH, AUTH_EVENTS.USER_UPDATED].includes(event)) {
+    persistIdentityCookies();
+  }
+});
 
 function view(formId = '') {
   gate.hidden = false;
@@ -54,6 +61,11 @@ async function refreshAccess() {
   notice('Comprobando tu acceso…');
   try {
     const user = await getUser();
+    if (user) {
+      // A suspended iOS PWA can wake after the access token has expired.
+      await refreshSession();
+      persistIdentityCookies();
+    }
     signOut.hidden = !user;
     resendSignedInConfirmation.hidden = !user || Boolean(user.confirmedAt) || !user.confirmationSentAt;
     if (!user) {
