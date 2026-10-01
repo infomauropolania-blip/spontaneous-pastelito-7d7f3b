@@ -32,8 +32,10 @@ body { margin: 0; min-width: 320px; min-height: 100vh; background: var(--paper);
 .access-card form { display: grid; gap: 14px; margin-top: 24px; }
 .access-card label { display: block; }
 .access-card input { width: 100%; min-height: 46px; padding: 0 12px; border: 1px solid var(--line); border-radius: 6px; background: white; }
+.access-card input[aria-invalid="true"] { border-color: #a53625; }
 .access-card .primary-button { justify-content: center; }
 .access-card .text-button { justify-self: start; }
+#resendSignedInConfirmation { margin-top: 18px; }
 #academySignOut { margin-top: 18px; }
 button, input, select, textarea { font: inherit; }
 button { color: inherit; }

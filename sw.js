@@ -1,4 +1,4 @@
-const CACHE = 'peppos-academy-v5.8-access-control';
+const CACHE = 'peppos-academy-v5.9-session-recovery';
 const APP_SHELL = ['/src/styles.css', '/src/calculator.js', '/src/filter-calculator.js', '/src/manual-calculator.js', '/src/machine-guides.js', '/src/access.bundle.js', '/src/app.js', '/manifest.webmanifest', '/assets/peppos-coffee-academy.jpeg', '/icons/pepos-icon.svg', '/icons/pepos-icon-192.png', '/icons/pepos-icon-512.png'];
 
 self.addEventListener('install', (event) => {

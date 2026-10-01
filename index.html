@@ -39,7 +39,9 @@
           <h2>Crear nueva contraseña</h2>
           <p>Escribe una contraseña nueva para tu cuenta de Academy.</p>
           <label><span>Nueva contraseña</span><input name="password" type="password" minlength="8" autocomplete="new-password" required /></label>
-          <label><span>Repite la contraseña</span><input name="confirmPassword" type="password" minlength="8" autocomplete="new-password" required /></label>
+          <label><span>Repite la contraseña</span><input name="confirmPassword" type="password" minlength="8" autocomplete="new-password" aria-describedby="academyResetFeedback" required /></label>
+          <button class="text-button" id="toggleAcademyResetPasswords" type="button" aria-pressed="false">Mostrar contraseñas</button>
+          <p id="academyResetFeedback" class="access-feedback" role="status" aria-live="polite" hidden></p>
           <button class="primary-button" type="submit">Guardar contraseña</button>
         </form>
         <form id="academySignupForm" hidden>
@@ -60,6 +62,7 @@
           <p>El administrador comprobará el local y aprobará tu acceso.</p>
           <button class="primary-button" type="submit">Enviar solicitud</button>
         </form>
+        <button class="text-button" id="resendSignedInConfirmation" type="button" hidden>Reenviar correo de confirmación</button>
         <button class="text-button" id="academySignOut" type="button" hidden>Cerrar sesión</button>
       </div>
     </div>

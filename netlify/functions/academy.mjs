@@ -1,8 +1,7 @@
-import { getUser, verifyRequestOrigin } from '@netlify/identity';
+import { admin, getUser, verifyRequestOrigin } from '@netlify/identity';
 import { getStore, getDeployStore } from '@netlify/blobs';
 import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { cleanText, dayInMadrid, groupDaily, normalizeRecord, publicProfile, validDay } from '../../src/academy-access-core.mjs';
-
 
 const json = (data, status = 200) => Response.json(data, { status, headers: { 'Cache-Control': 'no-store' } });
 const error = (message, status = 400) => json({ error: message }, status);
@@ -15,9 +14,30 @@ function bridgeAdmin(req) {
 const profileKey = (id) => `profiles/${id}`;
 const recordKey = (record) => `records/${record.day}/${record.localId}/${record.id}`;
 const localKey = (id) => `locals/${id}`;
-
 async function requestBody(req) {
   try { return await req.json(); } catch { return {}; }
+}
+async function verifiedUser(req) {
+  const user = await getUser();
+  if (user?.confirmedAt) return user;
+  if (user?.id) {
+    const profile = await admin.getUser(user.id).catch(() => null);
+    if (profile) return profile;
+  }
+  const jwt = req.headers.get('cookie')?.split(';').map((part) => part.trim())
+    .find((part) => part.startsWith('nf_jwt='))?.slice('nf_jwt='.length);
+  if (!jwt) return user;
+  let token;
+  try { token = decodeURIComponent(jwt); } catch { return user; }
+  const identityUrl = new URL('/.netlify/identity/user', req.url);
+  const response = await fetch(identityUrl, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: 'no-store'
+  }).catch(() => null);
+  if (!response?.ok) return user;
+  const full = await response.json().catch(() => null);
+  if (!full?.id || (user?.id && full.id !== user.id)) return user;
+  return { id: full.id, email: full.email, confirmedAt: full.confirmed_at };
 }
 
 export default async function handler(req, context) {
@@ -35,8 +55,9 @@ export default async function handler(req, context) {
     const method = req.method.toUpperCase();
     const isAdmin = bridgeAdmin(req);
     if (!isAdmin && !['GET', 'HEAD'].includes(method)) verifyRequestOrigin(req);
-    const user = isAdmin ? null : await getUser();
-    if (!isAdmin && (!user || !user.emailVerified)) return error('Confirma tu correo e inicia sesión.', 401);
+    const user = isAdmin ? null : await verifiedUser(req);
+    if (!isAdmin && !user) return error('La API no recibió tu sesión. Cierra sesión y vuelve a entrar.', 401);
+    if (!isAdmin && !user.confirmedAt) return error('No se pudo verificar que tu correo esté confirmado en Identity. Consulta con el administrador de Peppos.', 403);
     const profile = user ? await read(profileKey(user.id)) : null;
 
     if (action === 'me' && method === 'GET') return json({ user: { id: user.id, email: user.email }, profile: publicProfile(profile) });
