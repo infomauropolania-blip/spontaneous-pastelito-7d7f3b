@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { persistIdentityCookies } from '../src/identity-session.mjs';
+import { persistIdentityCookies, restoreIdentitySession } from '../src/identity-session.mjs';
 
 test('getUser pierde una cookie de sesión al cerrar iOS y conserva una persistente', async () => {
   const storage = new Map();
@@ -29,12 +29,17 @@ test('getUser pierde una cookie de sesión al cerrar iOS y conserva una persiste
     throw new Error(`Petición inesperada: ${url}`);
   };
 
-  const { getUser, login, logout, onAuthChange, AUTH_EVENTS } = await import('@netlify/identity');
+  const { getUser, login, logout, onAuthChange, AUTH_EVENTS, refreshSession } = await import('@netlify/identity');
   await login('test@example.invalid', 'test-only');
   assert.ok(await getUser());
   assert.ok(storage.has('gotrue.user'));
   for (const [key, entry] of cookies) if (!entry.persistent) cookies.delete(key);
-  assert.equal(await getUser(), null, 'el SDK descarta la sesión local cuando falta nf_jwt');
+  assert.equal(await restoreIdentitySession(refreshSession), true);
+  assert.ok(await getUser(), 'recupera la sesión antes de que el SDK borre gotrue.user');
+  assert.equal(cookies.get('nf_jwt')?.persistent, true);
+  cookies.clear();
+  assert.equal(await restoreIdentitySession(refreshSession), true, 'puede restaurar otra vez tras perder ambas cookies');
+  assert.ok(await getUser());
 
   onAuthChange((event) => {
     if ([AUTH_EVENTS.LOGIN, AUTH_EVENTS.TOKEN_REFRESH].includes(event)) persistIdentityCookies();
