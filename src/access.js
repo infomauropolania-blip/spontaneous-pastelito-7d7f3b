@@ -1,5 +1,5 @@
 import { AUTH_EVENTS, getUser, handleAuthCallback, login, logout, onAuthChange, refreshSession, requestPasswordRecovery, signup, updateUser } from '@netlify/identity';
-import { persistIdentityCookies } from './identity-session.mjs';
+import { persistIdentityCookies, restoreIdentitySession } from './identity-session.mjs';
 
 const gate = document.querySelector('#academyAccessGate');
 const shell = document.querySelector('.app-shell');
@@ -60,17 +60,21 @@ async function refreshAccess() {
   view();
   notice('Comprobando tu acceso…');
   try {
-    const user = await getUser();
-    if (user) {
-      // A suspended iOS PWA can wake after the access token has expired.
-      await refreshSession();
-      persistIdentityCookies();
+    const restored = await restoreIdentitySession(refreshSession);
+    if (!restored && !document.cookie.split(';').some((part) => part.trim().startsWith('nf_jwt='))) {
+      signOut.hidden = true;
+      notice('Entra con el mismo correo y contraseña de tu cuenta. Perder la sesión no cambia tu contraseña.');
+      view('academyLoginForm');
+      return;
     }
+    await refreshSession();
+    persistIdentityCookies();
+    const user = await getUser();
     signOut.hidden = !user;
     resendSignedInConfirmation.hidden = !user || Boolean(user.confirmedAt) || !user.confirmationSentAt;
     if (!user) {
-      notice('¿Es tu primera vez? Solicita acceso con tu correo, nombre y local. Si ya tienes permiso, entra con tu cuenta.');
-      view('academySignupForm');
+      notice('Entra con el mismo correo y contraseña de tu cuenta. Perder la sesión no cambia tu contraseña.');
+      view('academyLoginForm');
       return;
     }
     if (!user.confirmedAt) {
@@ -290,7 +294,7 @@ handleAuthCallback().then((result) => {
   if (result?.type === 'recovery') sessionStorage.setItem(recoveryPendingKey, '1');
 }).catch((error) => notice(friendlyError(error)))
   .finally(async () => {
-    if (sessionStorage.getItem(recoveryPendingKey) === '1' && await getUser()) {
+    if (sessionStorage.getItem(recoveryPendingKey) === '1' && (await restoreIdentitySession(refreshSession) || document.cookie.includes('nf_jwt=')) && await getUser()) {
       notice('Enlace verificado. Crea ahora tu contraseña nueva.');
       view('academyResetForm');
       return;
