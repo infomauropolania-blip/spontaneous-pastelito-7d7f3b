@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#090908" />
+  <meta name="robots" content="noindex" />
+  <meta name="apple-mobile-web-app-title" content="Academy PEPPO’S" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/icons/academy-20261027-1/apple-touch-icon-180.png" />
+  <meta property="og:title" content="Tu Academy PEPPO’S, actualizada" />
+  <meta property="og:description" content="Abre Academy con tu cuenta de siempre y guarda el nuevo acceso en tu móvil." />
+  <meta property="og:image" content="https://calibracionpepposcoffee.netlify.app/icons/academy-20261027-1/icon-512.png" />
+  <title>Actualizar Academy PEPPO’S</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#090908;color:#f7f3e8;font:16px/1.6 system-ui,sans-serif}main{max-width:660px;margin:auto;padding:40px 24px 56px}header{text-align:center}header img{display:block;margin:0 auto 22px}h1{font-size:clamp(28px,7vw,40px);line-height:1.15;letter-spacing:-.035em;margin:0 0 20px}h2{font-size:21px;color:#e8b64c;margin:0 0 12px}p{color:#cfc8b9;margin:12px 0}strong{color:#fff}a{color:#edbd5a}.button{display:block;text-align:center;margin:26px 0;padding:17px 20px;background:#e8b64c;color:#111;font-weight:750;text-decoration:none;border-radius:12px}.button[aria-busy=true]{opacity:.7;pointer-events:none}section{padding:23px;border:1px solid #4f4430;border-radius:14px;margin-top:18px;background:#151410}ol{padding-left:22px;margin-bottom:0}li+li{margin-top:12px}.note{font-size:14px}footer{text-align:center;font-size:14px;margin-top:30px}
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <img src="/icons/academy-20261027-1/icon-192.png" width="96" height="96" alt="Icono dorado 3D de Academy PEPPO’S" />
+    <h1>Tu Academy,<br>actualizada.</h1>
+    <p>Entra con <strong>tu correo y contraseña de siempre</strong>. Los accesos gratuitos ya aprobados se mantienen.</p>
+  </header>
+  <a class="button" id="openAcademy" href="/">Abrir y actualizar Academy</a>
+  <p class="note" id="updateStatus" role="status">Abre con conexión a internet. La actualización no realiza ningún cobro ni borra tus recetas.</p>
+  <section>
+    <h2>Si ya tienes la aplicación</h2>
+    <ol><li>Pulsa «Abrir y actualizar Academy».</li><li>Entra con tu cuenta habitual si te lo pide.</li><li>Cierra por completo la aplicación guardada y vuelve a abrirla con conexión para recibir la versión disponible.</li></ol>
+  </section>
+  <section>
+    <h2>Guardar el icono en el móvil</h2>
+    <p><strong>iPhone o iPad:</strong> abre Academy en Safari, pulsa Compartir y elige «Añadir a pantalla de inicio».</p>
+    <p><strong>Android:</strong> abre Academy en Chrome, pulsa ⋮ y elige «Instalar aplicación» o «Añadir a pantalla de inicio».</p>
+    <p><strong>Ordenador:</strong> abre Academy en Chrome o Edge y utiliza su opción de instalar aplicación.</p>
+    <p class="note">El contenido y el icono de inicio se actualizan por separado. iPhone puede conservar el icono antiguo de un acceso ya guardado. Si necesitas sustituir ese acceso, comprueba primero que puedes entrar desde el nuevo y que tus recetas o ajustes locales están conservados. No borres los datos del navegador.</p>
+  </section>
+  <footer>Academy PEPPO’S · <a href="https://pepposcoffee.com/pages/contacto">Necesito ayuda</a></footer>
+</main>
+<script>
+document.getElementById('openAcademy').addEventListener('click',async(event)=>{
+  if(event.metaKey||event.ctrlKey||event.shiftKey||event.altKey||!('serviceWorker' in navigator))return;
+  event.preventDefault();
+  const button=event.currentTarget;button.setAttribute('aria-busy','true');
+  document.getElementById('updateStatus').textContent='Comprobando la versión disponible…';
+  try{
+    const registration=await navigator.serviceWorker.register('/sw.js',{updateViaCache:'none'});
+    await registration.update();
+    const worker=registration.installing;
+    if(worker)await new Promise(resolve=>{
+      const timer=setTimeout(resolve,5000);
+      worker.addEventListener('statechange',()=>{if(['activated','redundant'].includes(worker.state)){clearTimeout(timer);resolve();}});
+      if(['activated','redundant'].includes(worker.state)){clearTimeout(timer);resolve();}
+    });
+  }catch{/* Academy can still open when the browser manages the update later. */}
+  window.location.assign('/');
+});
+</script>
+</body>
+</html>

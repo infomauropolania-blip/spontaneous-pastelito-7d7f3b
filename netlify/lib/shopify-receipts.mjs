@@ -49,6 +49,23 @@ export function normalizeReceipts(event) {
   if(!byVariant.size)throw new Error('Sin modalidad de Academy.');
   return [...byVariant.values()].map(item=>normalizeReceipt({...event,items:[item]}));
 }
+export function normalizePaidOrders(event) {
+  if(event?.version!==1 || event.shop!==SHOP || event.topic!=='paid_orders'
+    || !Array.isArray(event.receipts) || !event.receipts.length || event.receipts.length>100)throw new Error('Lote de pagos inválido.');
+  // Every entry keeps the same checks as a single verified payment. Different
+  // contracts and modalities in one paid order retain independent lifecycles.
+  const grouped=new Map();
+  for(const receipt of event.receipts.flatMap(entry=>normalizeReceipts(entry))) {
+    const previous=grouped.get(receipt.reference);
+    if(previous) {
+      for(const field of ['customerHash','plan','source','startsAt','expiresAt','orderId','variantId','contractId'])
+        if(previous[field]!==receipt[field])throw new Error('Las líneas del pago no coinciden.');
+      if(previous.quantity+receipt.quantity>1000)throw new Error('Cantidad de Academy inválida.');
+      previous.quantity+=receipt.quantity;
+    } else grouped.set(receipt.reference,{...receipt});
+  }
+  return [...grouped.values()];
+}
 export async function persistReceipt(db, receipt) {
   const client=await db.connect();
   try {
