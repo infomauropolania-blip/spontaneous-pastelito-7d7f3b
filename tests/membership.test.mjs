@@ -120,3 +120,11 @@ test('cancelling a prize contract removes its renewals while preserving an indep
  await persistStop(db,normalizeStop({...event,topic:'contract_cancel'}));
  assert.equal((await getGrants(db,user.id)).filter(g=>!g.revokedAt).length,1);
 });
+test('unrelated Flow events are acknowledged without access and still require authentication',async()=>{
+ const {default:receiver}=await import('../netlify/functions/academy-shopify-flow.mjs');
+ process.env.ACADEMY_FLOW_SECRET='test-only-private-key-'.repeat(3);
+ const body=JSON.stringify({version:1,shop:'peppos-coffee.myshopify.com',topic:'ignored'});
+ assert.equal((await receiver(new Request('https://academy.test/api/academy-shopify/flow',{method:'POST',body}),context)).status,401);
+ const r=await receiver(new Request('https://academy.test/api/academy-shopify/flow',{method:'POST',headers:{Authorization:'Bearer '+process.env.ACADEMY_FLOW_SECRET},body}),context);
+ assert.equal(r.status,202);assert.equal((await r.json()).ignored,true);
+});

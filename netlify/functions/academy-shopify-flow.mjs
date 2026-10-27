@@ -9,7 +9,11 @@ export default async function handler(req,context) {
     if(declared>24000)return reply({error:'Evento demasiado grande.'},413);
     const text=await req.text();if(Buffer.byteLength(text)>24000)return reply({error:'Evento demasiado grande.'},413);
     let receipt,stopping;
-    try{const event=JSON.parse(text);stopping=['contract_cancel','refund'].includes(event.topic);receipt=stopping?normalizeStop(event):normalizeReceipt(event);}catch{return reply({error:'Evento de pago inválido.'},400);}
+    try{
+      const event=JSON.parse(text);
+      if(event.version===1 && event.shop==='peppos-coffee.myshopify.com' && event.topic==='ignored')return reply({accepted:true,ignored:true},202);
+      stopping=['contract_cancel','refund'].includes(event.topic);receipt=stopping?normalizeStop(event):normalizeReceipt(event);
+    }catch{return reply({error:'Evento de pago inválido.'},400);}
     const db=membershipPool(context);if(!db)return reply({error:'Integración todavía no activada.'},503);
     const created=await (stopping?persistStop(db,receipt):persistReceipt(db,receipt));
     return reply({accepted:true,duplicate:!created},202);

@@ -94,13 +94,22 @@ de datos aparece habilitado; su ramal de prueba aún no está disponible. Faltan
 y revocación coordinada de contrato gratuito y permiso antes de abrir ventas.
 
 COMPROBACIÓN DE ALMACENAMIENTO, 27/10/2026
-El usuario autorizó la conexión privada. Paquete @netlify/database instalado y
-migraciones trasladadas a netlify/database/migrations/ para aplicación por deploy.
-Deploy de prueba 6ae0f4e4121323fa87e0fc5b listo, no publicado en producción.
-El estado del servicio es enabled; las dos migraciones siguen pendientes en
-producción. No se ha modificado el esquema de producción con conexiones directas.
-La comprobación oficial del ramal de prueba devuelve:
-No database branch found for "6ae0f4e4121323fa87e0fc5b". Has a deploy been published for this branch?
-No se hicieron intentos de recuperación por API interna ni exportación de credenciales.
-Detenida la conexión comercial hasta disponer del ramal gestionado correcto.
-Logs: https://app.netlify.com/projects/calibracionpepposcoffee/deploys/6ae0f4e4121323fa87e0fc5b
+El usuario autorizó conexión privada y publicación tras las comprobaciones.
+La comprobación anterior usó el ID del despliegue como nombre del ramal; era
+incorrecto. El panel confirmó el ramal codex/barista-plans-20261027. Tras dar
+acceso a Academy en la instalación de GitHub, el PR 11 generó el deploy remoto
+6ae0fb95ec75a5f4f04d71cb y aplicó las dos primeras migraciones sin pendientes.
+La tercera migración añade identificación de contrato/pedido y revocaciones para
+cancelaciones de premios y reembolsos; debe verificarse en la siguiente compilación.
+La producción conserva los iconos mientras no se haya completado la validación.
+
+La clave de Flow y el catálogo de premios se guardan solo como secretos de
+funciones en Netlify. No registrar sus valores en logs, archivos ni Git.
+Las plantillas de Flow deben filtrar los productos de Academy antes de incluir
+correo o datos del pedido; un evento ajeno solo envía topic ignored, sin PII.
+Los recibos requieren contractId. Añadir subscriptionId al cuerpo de alta y
+renovación. Una cancelación de pago conserva el período abonado; cancelar el
+contrato de un premio retira ese premio y sus renovaciones de importe cero.
+Un reembolso completo de la línea Academy revoca solo ese pedido. Registrar
+primero el evento de revocación permite rechazar pagos recibidos fuera de orden.
+No tocar recuperación de pagos global ni otras aplicaciones para fijar Academy.
