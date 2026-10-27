@@ -30,14 +30,24 @@ export function normalizeReceipt(event) {
   if (parts.day !== '01') throw new Error('La renovación debe ser el día 1.');
   if (!Array.isArray(event.items) || event.items.length > 100) throw new Error('Modalidad inválida.');
   const items = event.items.filter(item=>numericId(item.productId) === PRODUCT && VARIANTS[numericId(item.variantId || item.graphqlVariantId)]);
-  if (items.length !== 1 || Number(items[0].quantity) !== 1) throw new Error('El pedido debe contener una sola modalidad de Academy.');
+  if (items.length !== 1 || !Number.isInteger(Number(items[0].quantity)) || Number(items[0].quantity)<1 || Number(items[0].quantity)>1000) throw new Error('Cantidad de Academy inválida.');
   const plan = VARIANTS[numericId(items[0].variantId || items[0].graphqlVariantId)];
   const prize = Array.isArray(event.discountCodes) ? event.discountCodes.find(code=>prizePlan(code) === plan) : null;
   // Only the paid initial checkout may redeem one of our known prize codes.
   const source = event.topic === 'initial_paid' && prize ? 'gift' : 'paid';
   return { reference: source === 'gift' ? `shopify-prize:${prize}` : `shopify-order:${numericId(event.orderId)}:${numericId(items[0].variantId || items[0].graphqlVariantId)}`,
     customerHash: emailHash(event.customerEmail), plan, source, startsAt: start.toISOString(), expiresAt: source === 'gift' ? null : end.toISOString(),
-    orderId: numericId(event.orderId), variantId: numericId(items[0].variantId || items[0].graphqlVariantId), contractId: numericId(event.contractId) };
+    orderId: numericId(event.orderId), variantId: numericId(items[0].variantId || items[0].graphqlVariantId), contractId: numericId(event.contractId), quantity:Number(items[0].quantity) };
+}
+export function normalizeReceipts(event) {
+  if(!Array.isArray(event?.items) || event.items.length>100)throw new Error('Modalidad inválida.');
+  const byVariant=new Map();
+  for(const item of event.items)if(numericId(item.productId)===PRODUCT && VARIANTS[numericId(item.variantId || item.graphqlVariantId)]) {
+    const id=numericId(item.variantId || item.graphqlVariantId),old=byVariant.get(id);
+    byVariant.set(id,{...item,quantity:Number(item.quantity)+(old?.quantity||0)});
+  }
+  if(!byVariant.size)throw new Error('Sin modalidad de Academy.');
+  return [...byVariant.values()].map(item=>normalizeReceipt({...event,items:[item]}));
 }
 export async function persistReceipt(db, receipt) {
   const client=await db.connect();
@@ -46,17 +56,18 @@ export async function persistReceipt(db, receipt) {
     await lock(client,'contract:'+receipt.contractId);
     await lock(client,'order:'+receipt.orderId+':'+receipt.variantId);
     const result = await client.query(`INSERT INTO academy_purchase_receipts
-      (external_reference,customer_hash,plan,source,starts_at,expires_at,order_id,variant_id,contract_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)
-      ON CONFLICT(external_reference) DO NOTHING`, [receipt.reference,receipt.customerHash,receipt.plan,receipt.source,receipt.startsAt,receipt.expiresAt,receipt.orderId,receipt.variantId,receipt.contractId]);
+      (external_reference,customer_hash,plan,source,starts_at,expires_at,order_id,variant_id,contract_id,quantity) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+      ON CONFLICT(external_reference) DO NOTHING`, [receipt.reference,receipt.customerHash,receipt.plan,receipt.source,receipt.startsAt,receipt.expiresAt,receipt.orderId,receipt.variantId,receipt.contractId,receipt.quantity]);
     const { rows } = await client.query('SELECT customer_hash,plan,source,order_id,contract_id FROM academy_purchase_receipts WHERE external_reference=$1',[receipt.reference]);
     if (rows[0]?.customer_hash !== receipt.customerHash || rows[0]?.plan !== receipt.plan || rows[0]?.source !== receipt.source
       || rows[0]?.order_id !== receipt.orderId || rows[0]?.contract_id !== receipt.contractId) throw new Error('El recibo pertenece a otra cuenta o modalidad.');
     const stop=await client.query(`SELECT reference FROM academy_shopify_stops WHERE
-      reference=$1 OR (reference=$2 AND EXISTS(SELECT 1 FROM academy_purchase_receipts WHERE contract_id=$3 AND source='gift'))`,
-      ['order:'+receipt.orderId+':'+receipt.variantId,'contract:'+receipt.contractId,receipt.contractId]);
+      (reference=$1 AND refunded_quantity >= $5) OR (reference=$2 AND EXISTS(SELECT 1 FROM academy_purchase_receipts WHERE contract_id=$3 AND variant_id=$4 AND source='gift'))`,
+      ['order:'+receipt.orderId+':'+receipt.variantId,'contract:'+receipt.contractId,receipt.contractId,receipt.variantId,receipt.quantity]);
     if(stop.rows.length) {
       const revoked=stop.rows.some(s=>s.reference.startsWith('contract:'))
-        ? await client.query('UPDATE academy_purchase_receipts SET revoked_at=COALESCE(revoked_at,now()) WHERE contract_id=$1 RETURNING external_reference',[receipt.contractId])
+        ? await client.query(`UPDATE academy_purchase_receipts SET revoked_at=COALESCE(revoked_at,now()) WHERE contract_id=$1
+          AND variant_id IN(SELECT variant_id FROM academy_purchase_receipts WHERE contract_id=$1 AND source='gift') RETURNING external_reference`,[receipt.contractId])
         : await client.query('UPDATE academy_purchase_receipts SET revoked_at=COALESCE(revoked_at,now()) WHERE external_reference=$1 RETURNING external_reference',[receipt.reference]);
       await revokeReferences(client,revoked.rows.map(r=>r.external_reference));
     }
@@ -76,21 +87,35 @@ export function normalizeStop(event) {
   if(event.topic==='refund' && /^\d{5,30}$/.test(numericId(event.orderId)) && Array.isArray(event.items)) {
     const items=event.items.filter(i=>numericId(i.productId)===PRODUCT && VARIANTS[numericId(i.variantId)] && Number(i.quantity)>=1);
     if(items.length!==1)throw new Error('Reembolso sin modalidad de Academy.');
-    return {kind:'refund',reference:'order:'+numericId(event.orderId)+':'+numericId(items[0].variantId),orderId:numericId(event.orderId),variantId:numericId(items[0].variantId)};
+    if(!Number.isInteger(Number(items[0].quantity)) || Number(items[0].quantity)>1000)throw new Error('Cantidad de reembolso inválida.');
+    return {kind:'refund',reference:'order:'+numericId(event.orderId)+':'+numericId(items[0].variantId),orderId:numericId(event.orderId),variantId:numericId(items[0].variantId),quantity:Number(items[0].quantity)};
   }
   throw new Error('Evento inválido.');
+}
+export function normalizeRefunds(event) {
+  if(!Array.isArray(event?.items) || event.items.length>100)throw new Error('Reembolso inválido.');
+  const byVariant=new Map();
+  for(const item of event.items)if(numericId(item.productId)===PRODUCT && VARIANTS[numericId(item.variantId)]) {
+    const id=numericId(item.variantId),old=byVariant.get(id);
+    byVariant.set(id,{...item,quantity:Number(item.quantity)+(old?.quantity||0)});
+  }
+  if(!byVariant.size)throw new Error('Sin reembolso de Academy.');
+  return [...byVariant.values()].map(item=>normalizeStop({...event,items:[item]}));
 }
 export async function persistStop(db, stop) {
   const client=await db.connect();
   try {
     await client.query('BEGIN');await lock(client,stop.reference);
-    const inserted=await client.query('INSERT INTO academy_shopify_stops(reference,kind) VALUES($1,$2) ON CONFLICT DO NOTHING',[stop.reference,stop.kind]);
+    const inserted=await client.query(`INSERT INTO academy_shopify_stops(reference,kind,refunded_quantity) VALUES($1,$2,$3)
+      ON CONFLICT(reference) DO UPDATE SET refunded_quantity=EXCLUDED.refunded_quantity
+      WHERE academy_shopify_stops.kind='refund' AND EXCLUDED.refunded_quantity>academy_shopify_stops.refunded_quantity`,[stop.reference,stop.kind,stop.quantity||1]);
     // A paid cancellation preserves the period already purchased. A cancelled
     // prize contract revokes that prize and its zero-value renewal receipts.
     const result=stop.kind==='refund'
-      ? await client.query('UPDATE academy_purchase_receipts SET revoked_at=COALESCE(revoked_at,now()) WHERE order_id=$1 AND variant_id=$2 RETURNING external_reference',[stop.orderId,stop.variantId])
+      ? await client.query(`UPDATE academy_purchase_receipts SET revoked_at=COALESCE(revoked_at,now()) WHERE order_id=$1 AND variant_id=$2
+          AND quantity <= (SELECT refunded_quantity FROM academy_shopify_stops WHERE reference=$3) RETURNING external_reference`,[stop.orderId,stop.variantId,stop.reference])
       : await client.query(`UPDATE academy_purchase_receipts SET revoked_at=COALESCE(revoked_at,now()) WHERE contract_id=$1
-        AND EXISTS(SELECT 1 FROM academy_purchase_receipts WHERE contract_id=$1 AND source='gift') RETURNING external_reference`,[stop.contractId]);
+        AND variant_id IN(SELECT variant_id FROM academy_purchase_receipts WHERE contract_id=$1 AND source='gift') RETURNING external_reference`,[stop.contractId]);
     const references=result.rows.map(r=>r.external_reference);
     await revokeReferences(client,references);
     await client.query('COMMIT');return inserted.rowCount===1;

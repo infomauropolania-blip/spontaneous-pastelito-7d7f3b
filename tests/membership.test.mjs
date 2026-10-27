@@ -68,7 +68,7 @@ test('API refuses Home save/history and isolates professional recipes',async()=>
 });
 test('preview rejects production DB marker',()=>{process.env.ACADEMY_DATABASE_ENVIRONMENT='production';assert.throws(()=>membershipPool(context),/entorno/);process.env.ACADEMY_DATABASE_ENVIRONMENT=context.deploy.id;});
 
-const { normalizeReceipt, persistReceipt, claimReceipts, authorizedFlow, normalizeStop, persistStop } = await import('../netlify/lib/shopify-receipts.mjs');
+const { normalizeReceipt, normalizeReceipts, normalizeRefunds, persistReceipt, claimReceipts, authorizedFlow, normalizeStop, persistStop } = await import('../netlify/lib/shopify-receipts.mjs');
 const receiptEvent={version:1,shop:'peppos-coffee.myshopify.com',topic:'billing_success',customerEmail:'paid@example.invalid',orderId:'123456789',contractId:'888888888',paymentStatus:'SUCCESS',billingDate:'2026-10-01T08:00:00Z',nextBillingDate:'2026-11-01T09:00:00Z',currency:'EUR',items:[{productId:'gid://shopify/Product/16413096051075',variantId:63157065908611,quantity:1}]};
 test('Flow rejects unsigned, wrong-shop, unpaid and unrelated-product events',()=>{
  assert.equal(authorizedFlow(new Request('https://academy.test'),''),false);
@@ -127,4 +127,26 @@ test('unrelated Flow events are acknowledged without access and still require au
  assert.equal((await receiver(new Request('https://academy.test/api/academy-shopify/flow',{method:'POST',body}),context)).status,401);
  const r=await receiver(new Request('https://academy.test/api/academy-shopify/flow',{method:'POST',headers:{Authorization:'Bearer '+process.env.ACADEMY_FLOW_SECRET},body}),context);
  assert.equal(r.status,202);assert.equal((await r.json()).ignored,true);
+});
+test('cumulative partial refunds retain access until every purchased unit is refunded',async()=>{
+ const user={id:'partial-refund-user',email:'partial@example.invalid',confirmedAt:'2026-01-01'};
+ const item={...receiptEvent.items[0],quantity:2};
+ const event={...receiptEvent,customerEmail:user.email,orderId:'881111111',contractId:'881111111',items:[item]};
+ await persistReceipt(db,normalizeReceipt(event));await claimReceipts(db,user);
+ await persistStop(db,normalizeRefunds({...event,topic:'refund',items:[{...item,quantity:1}]})[0]);
+ assert.equal(resolveAccess(null,await getGrants(db,user.id),now).allowed,true);
+ const full=normalizeRefunds({...event,topic:'refund',items:[{...item,quantity:1},{...item,quantity:1}]})[0];
+ assert.equal(await persistStop(db,full),true);assert.equal(await persistStop(db,full),false);
+ assert.equal(resolveAccess(null,await getGrants(db,user.id),now).allowed,false);
+});
+test('mixed contract cancellation revokes gifted Home while retaining paid professional access',async()=>{
+ process.env.ACADEMY_PRIZE_CODES=JSON.stringify({'TEST-MIXED-PRIZE':'home'});
+ const user={id:'mixed-contract-user',email:'mixed@example.invalid',confirmedAt:'2026-01-01'};
+ const event={...receiptEvent,customerEmail:user.email,orderId:'882222222',contractId:'882222222',topic:'initial_paid',paymentStatus:'PAID',discountCodes:['TEST-MIXED-PRIZE'],items:[receiptEvent.items[0],{...receiptEvent.items[0],variantId:63157080621443},{productId:'99999',variantId:'99999',quantity:1}]};
+ const receipts=normalizeReceipts(event);assert.equal(receipts.length,2);
+ for(const receipt of receipts)await persistReceipt(db,receipt);
+ await claimReceipts(db,user);await persistStop(db,normalizeStop({...event,topic:'contract_cancel'}));
+ const active=(await getGrants(db,user.id)).filter(g=>!g.revokedAt);
+ assert.equal(active.length,1);assert.equal(active[0].plan,'professional');
+ assert.equal(resolveAccess(null,active,now).canSave,true);
 });
