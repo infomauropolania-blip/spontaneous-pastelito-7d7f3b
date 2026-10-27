@@ -684,3 +684,5 @@ window.addEventListener('academy-access-change', ({ detail }) => {
   renderHistory();
   if (detail.canHistory) loadHistory();
 });
+// Session verification can finish before the remaining deferred scripts load.
+if (window.PepposAcademyAccess?.permissions?.allowed) window.dispatchEvent(new CustomEvent('academy-access-change', { detail: window.PepposAcademyAccess.permissions }));
