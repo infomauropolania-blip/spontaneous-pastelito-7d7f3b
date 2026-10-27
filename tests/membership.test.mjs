@@ -68,8 +68,16 @@ test('API refuses Home save/history and isolates professional recipes',async()=>
 });
 test('preview rejects production DB marker',()=>{process.env.ACADEMY_DATABASE_ENVIRONMENT='production';assert.throws(()=>membershipPool(context),/entorno/);process.env.ACADEMY_DATABASE_ENVIRONMENT=context.deploy.id;});
 
-const { normalizeReceipt, normalizeReceipts, normalizeRefunds, persistReceipt, claimReceipts, authorizedFlow, normalizeStop, persistStop } = await import('../netlify/lib/shopify-receipts.mjs');
+const { normalizeReceipt, normalizeReceipts, normalizePaidOrders, normalizeRefunds, persistReceipt, claimReceipts, authorizedFlow, normalizeStop, persistStop } = await import('../netlify/lib/shopify-receipts.mjs');
 const receiptEvent={version:1,shop:'peppos-coffee.myshopify.com',topic:'billing_success',customerEmail:'paid@example.invalid',orderId:'123456789',contractId:'888888888',paymentStatus:'SUCCESS',billingDate:'2026-10-01T08:00:00Z',nextBillingDate:'2026-11-01T09:00:00Z',currency:'EUR',items:[{productId:'gid://shopify/Product/16413096051075',variantId:63157065908611,quantity:1}]};
+test('native paid-order batches retain separate contracts and reject any unpaid or foreign entry',()=>{
+ const second={...receiptEvent,contractId:'888888889',items:[{...receiptEvent.items[0],variantId:63157080621443}]};
+ const batch={version:1,shop:receiptEvent.shop,topic:'paid_orders',receipts:[receiptEvent,second]};
+ assert.deepEqual(normalizePaidOrders(batch).map(r=>[r.plan,r.contractId]),[['home','888888888'],['professional','888888889']]);
+ assert.equal(normalizePaidOrders({...batch,receipts:[receiptEvent,{...receiptEvent,items:[{...receiptEvent.items[0],quantity:2}]}]})[0].quantity,3);
+ for(const bad of [{...batch,receipts:[]},{...batch,receipts:[receiptEvent,{...second,paymentStatus:'FAILED'}]},{...batch,receipts:[{...receiptEvent,shop:'other.myshopify.com'}]}])assert.throws(()=>normalizePaidOrders(bad));
+ assert.throws(()=>normalizePaidOrders({...batch,receipts:[receiptEvent,{...receiptEvent,customerEmail:'different@example.invalid'}]}));
+});
 test('Flow rejects unsigned, wrong-shop, unpaid and unrelated-product events',()=>{
  assert.equal(authorizedFlow(new Request('https://academy.test'),''),false);
  assert.equal(authorizedFlow(new Request('https://academy.test',{headers:{Authorization:'Bearer '+ 's'.repeat(40)}}),'s'.repeat(40)),true);

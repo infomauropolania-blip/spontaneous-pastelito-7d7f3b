@@ -3,7 +3,7 @@ import { build } from 'esbuild';
 
 await rm('dist', { recursive: true, force: true });
 await mkdir('dist/src', { recursive: true });
-for (const path of ['index.html', 'sw.js', 'manifest.webmanifest', 'assets', 'icons']) {
+for (const path of ['index.html', 'actualizar.html', 'sw.js', 'manifest.webmanifest', 'assets', 'icons']) {
   await cp(path, `dist/${path}`, { recursive: true });
 }
 for (const name of ['styles.css', 'calculator.js', 'filter-calculator.js', 'manual-calculator.js', 'machine-guides.js', 'app.js']) {
