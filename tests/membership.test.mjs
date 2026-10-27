@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { after, before, mock, test } from 'node:test';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { NetlifyDB } from '@netlify/database-dev';
 import pg from 'pg';
 import { resolveAccess, calendarBillingNotice } from '../src/academy-plans.mjs';
@@ -34,8 +34,8 @@ let engine,db,handler,currentUser;const objects=new Map();const context={deploy:
 before(async()=>{
  process.env.ACADEMY_PRIZE_CODES=JSON.stringify({'TEST-HOME-PRIZE':'home','TEST-PRO-PRIZE':'professional'});
  engine=new NetlifyDB();const url=await engine.start();db=new pg.Pool({connectionString:url});
- await db.query(await readFile(new URL('../netlify/database/migrations/20261027190000_memberships.sql',import.meta.url),'utf8'));
- await db.query(await readFile(new URL('../netlify/database/migrations/20261027190100_shopify_receipts.sql',import.meta.url),'utf8'));
+ const migrations=new URL('../netlify/database/migrations/',import.meta.url);
+ for(const name of (await readdir(migrations)).filter(n=>n.endsWith('.sql')).sort())await db.query(await readFile(new URL(name,migrations),'utf8'));
  process.env.ACADEMY_MEMBERSHIPS_ENABLED='true';process.env.ACADEMY_DATABASE_URL=url;process.env.ACADEMY_DATABASE_ENVIRONMENT=context.deploy.id;
  mock.module('@netlify/identity',{namedExports:{getUser:async()=>currentUser,admin:{getUser:async()=>currentUser},verifyRequestOrigin:()=>{}}});
  const store={get:async(key)=>objects.get(key)||null,setJSON:async(key,value)=>{objects.set(key,value)},list:async()=>({blobs:[]})};
@@ -68,8 +68,8 @@ test('API refuses Home save/history and isolates professional recipes',async()=>
 });
 test('preview rejects production DB marker',()=>{process.env.ACADEMY_DATABASE_ENVIRONMENT='production';assert.throws(()=>membershipPool(context),/entorno/);process.env.ACADEMY_DATABASE_ENVIRONMENT=context.deploy.id;});
 
-const { normalizeReceipt, persistReceipt, claimReceipts, authorizedFlow } = await import('../netlify/lib/shopify-receipts.mjs');
-const receiptEvent={version:1,shop:'peppos-coffee.myshopify.com',topic:'billing_success',customerEmail:'paid@example.invalid',orderId:'123456789',paymentStatus:'SUCCESS',billingDate:'2026-10-01T08:00:00Z',nextBillingDate:'2026-11-01T09:00:00Z',currency:'EUR',items:[{productId:'gid://shopify/Product/16413096051075',variantId:63157065908611,quantity:1}]};
+const { normalizeReceipt, persistReceipt, claimReceipts, authorizedFlow, normalizeStop, persistStop } = await import('../netlify/lib/shopify-receipts.mjs');
+const receiptEvent={version:1,shop:'peppos-coffee.myshopify.com',topic:'billing_success',customerEmail:'paid@example.invalid',orderId:'123456789',contractId:'888888888',paymentStatus:'SUCCESS',billingDate:'2026-10-01T08:00:00Z',nextBillingDate:'2026-11-01T09:00:00Z',currency:'EUR',items:[{productId:'gid://shopify/Product/16413096051075',variantId:63157065908611,quantity:1}]};
 test('Flow rejects unsigned, wrong-shop, unpaid and unrelated-product events',()=>{
  assert.equal(authorizedFlow(new Request('https://academy.test'),''),false);
  assert.equal(authorizedFlow(new Request('https://academy.test',{headers:{Authorization:'Bearer '+ 's'.repeat(40)}}),'s'.repeat(40)),true);
@@ -91,4 +91,32 @@ test('known prize creates an indefinite gift; the same code cannot go to a secon
  const gift=normalizeReceipt(event);assert.equal(gift.source,'gift');assert.equal(gift.expiresAt,null);
  await persistReceipt(db,gift);
  await assert.rejects(persistReceipt(db,normalizeReceipt({...event,customerEmail:'someoneelse@example.invalid',orderId:'333333333'})));
+});
+test('paid cancellation preserves paid period; a refund revokes only its order',async()=>{
+ const user={id:'lifecycle-paid-user',email:'lifecycle@example.invalid',confirmedAt:'2026-01-01'};
+ const event={...receiptEvent,customerEmail:user.email,orderId:'444444444',contractId:'444444444'};
+ await persistReceipt(db,normalizeReceipt(event));await claimReceipts(db,user);
+ await persistStop(db,normalizeStop({...event,topic:'contract_cancel'}));
+ assert.equal(resolveAccess(null,await getGrants(db,user.id),now).allowed,true);
+ const refund=normalizeStop({...event,topic:'refund'});assert.equal(await persistStop(db,refund),true);
+ assert.equal(await persistStop(db,refund),false);
+ assert.equal(resolveAccess(null,await getGrants(db,user.id),now).allowed,false);
+ await claimReceipts(db,user);assert.equal((await getGrants(db,user.id)).length,1);
+});
+test('refund arriving before payment prevents later activation',async()=>{
+ const user={id:'early-refund-user',email:'early-refund@example.invalid',confirmedAt:'2026-01-01'};
+ const event={...receiptEvent,customerEmail:user.email,orderId:'555555555',contractId:'555555555'};
+ await persistStop(db,normalizeStop({...event,topic:'refund'}));await persistReceipt(db,normalizeReceipt(event));
+ await claimReceipts(db,user);assert.equal((await getGrants(db,user.id)).length,0);
+});
+test('cancelling a prize contract removes its renewals while preserving an independent payment',async()=>{
+ process.env.ACADEMY_PRIZE_CODES=JSON.stringify({'TEST-SECOND-PRIZE':'home'});
+ const user={id:'cancelled-prize-user',email:'cancelled-prize@example.invalid',confirmedAt:'2026-01-01'};
+ const event={...receiptEvent,customerEmail:user.email,orderId:'666666660',contractId:'666666666',topic:'initial_paid',paymentStatus:'PAID',discountCodes:['TEST-SECOND-PRIZE']};
+ await persistReceipt(db,normalizeReceipt(event));
+ await persistReceipt(db,normalizeReceipt({...event,orderId:'666666661',topic:'billing_success',paymentStatus:'SUCCESS'}));
+ await persistReceipt(db,normalizeReceipt({...receiptEvent,customerEmail:user.email,orderId:'777777777',contractId:'777777777'}));
+ await claimReceipts(db,user);assert.equal((await getGrants(db,user.id)).length,3);
+ await persistStop(db,normalizeStop({...event,topic:'contract_cancel'}));
+ assert.equal((await getGrants(db,user.id)).filter(g=>!g.revokedAt).length,1);
 });
