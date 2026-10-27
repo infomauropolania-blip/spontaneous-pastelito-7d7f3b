@@ -22,7 +22,8 @@
         <h1>Tu café, mejor cada día.</h1>
         <p>Academy PEPPO’S · Para baristas en casa y profesionales.</p>
         <div class="membership-cards"><article><span>BARISTA HOME</span><h2>Barista en casa</h2><strong>2,90 €<small>/mes</small></strong><p>Calibra y prepara. Sin guardar recetas ni seguimiento.</p></article><article><span>PARA TU LOCAL</span><h2>Barista profesional</h2><strong>4,90 €<small>/mes</small></strong><p>Calibra, guarda tus recetas y sigue cada preparación.</p></article></div>
-        <p class="membership-note">Suscripciones en preparación. Las cuentas actuales mantienen su acceso.</p>
+        <p class="membership-note">Suscríbete en la tienda y crea tu cuenta aquí con el mismo correo de la compra. Las cuentas actuales mantienen su acceso.</p>
+        <p class="membership-note"><a href="https://pepposcoffee.com/products/academy-peppo-s-acceso-mensual" target="_blank" rel="noopener">Elegir mi suscripción</a> · <a href="https://peppos-coffee.myshopify.com/apps/subscriptions" target="_blank" rel="noopener">Gestionar mi suscripción</a></p>
         <p id="academyAccessMessage" role="status">Comprobando tu acceso…</p>
         <form id="academyLoginForm" hidden>
           <h2>Ya tengo acceso</h2>
@@ -32,7 +33,7 @@
           <p id="academyLoginFeedback" class="access-feedback" role="alert" hidden></p>
           <button class="text-button" id="resendAcademyConfirmation" type="button" hidden>Reenviar correo de confirmación</button>
           <button class="text-button" id="showAcademyRecovery" type="button">¿Has olvidado tu contraseña?</button>
-          <button class="text-button" id="showAcademySignup" type="button">¿Primera vez? Solicitar acceso</button>
+          <button class="text-button" id="showAcademySignup" type="button">¿Primera vez? Crear mi cuenta</button>
         </form>
         <form id="academyRecoveryForm" hidden>
           <h2>Recuperar contraseña</h2>
@@ -59,8 +60,8 @@
           <label data-local-field hidden><span>Nombre del local</span><input name="local" minlength="2" maxlength="100" autocomplete="organization" /></label>
           <label><span>Correo electrónico</span><input name="email" type="email" autocomplete="email" required /></label>
           <label><span>Contraseña</span><input name="password" type="password" minlength="8" autocomplete="new-password" required /></label>
-          <p>Crea tu cuenta y confirma tu correo. Después podrás vincular tu acceso cuando esté disponible la suscripción.</p>
-          <button class="primary-button" type="submit">Solicitar acceso</button>
+          <p>Usa el mismo correo de tu compra y confírmalo con el enlace que recibirás. Tu suscripción o premio se vinculará automáticamente al entrar.</p>
+          <button class="primary-button" type="submit">Crear mi cuenta</button>
           <button class="text-button" id="showAcademyLogin" type="button">Ya tengo acceso · Entrar</button>
         </form>
         <form id="academyRequestForm" hidden>
@@ -361,6 +362,7 @@
       <footer>
         <span>PEPPOS COFFEE ACADEMY</span>
         <p>Precisión al servicio del sabor.</p>
+        <p><a href="https://peppos-coffee.myshopify.com/apps/subscriptions" target="_blank" rel="noopener">Gestionar mi suscripción</a></p>
       </footer>
     </div>
 

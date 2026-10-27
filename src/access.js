@@ -91,9 +91,9 @@ async function refreshAccess() {
       if (!profile) {
         document.getElementById('academyRequestForm').elements.name.value = user.userMetadata?.full_name || user.name || '';
         view('academyRequestForm');
-        notice('Completa tu perfil de barista. La suscripción y los códigos de premio estarán disponibles próximamente.');
+        notice('Completa tu perfil de barista. Usa el mismo correo con el que compraste la suscripción o canjeaste tu premio en la tienda.');
       } else {
-        notice('Tu cuenta está creada. El acceso se activará al verificar tu suscripción o invitación. Todavía no se realizan cobros.');
+        notice('Tu cuenta está creada. Si ya compraste o canjeaste un premio, comprueba que utilizaste este mismo correo. Vuelve a entrar en unos minutos para verificar tu acceso.');
       }
       return;
     }

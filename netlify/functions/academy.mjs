@@ -84,7 +84,7 @@ export default async function handler(req, context) {
     const access = resolveAccess(profile, user && !legacy ? await getGrants(db, user.id) : []);
     if (action === 'me' && method === 'GET') {
       if (!user) return error('Se requiere una cuenta personal.', 403);
-      return json({ user: { id: user.id, email: user.email }, profile: publicProfile(profile), access, commerceReady: false });
+      return json({ user: { id: user.id, email: user.email }, profile: publicProfile(profile), access });
     }
 
     if (action === 'request' && method === 'POST') {
