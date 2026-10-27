@@ -1,0 +1,115 @@
+Academy — modalidades comerciales, 27/10/2026
+
+Esta versión mantiene los iconos nuevos y añade modalidades, permisos y
+almacenamiento privado preparado. Incluye receptor de Shopify Flow y vinculación por correo confirmado.
+Faltan su configuración segura en el entorno y las pruebas reales del ciclo de pago.
+No publicar como una integración comercial terminada.
+
+Home: 2,90 EUR/mes, uso de calibradores sin recetas propias guardadas ni historial.
+Profesional: 4,90 EUR/mes, recetas privadas guardadas y seguimiento por fecha.
+Los perfiles antiguos aprobados sin marca commercial mantienen acceso profesional.
+Un perfil comercial aprobado o la selección de una modalidad no dan permisos:
+se requieren concesiones de acceso persistidas y controladas por el servidor.
+
+BASE DE DATOS
+Las migraciones netlify/database/migrations/ se aplican mediante el despliegue
+normal de Netlify a una base de datos/ramal aislado. No aplicar DDL directamente. No toca el almacén antiguo de locales en Blobs.
+ACADEMY_MEMBERSHIPS_ENABLED=true activa el acceso a la base de datos.
+ACADEMY_DATABASE_PROVIDER=netlify usa la conexión del ramal inyectada por
+Netlify. No exportar esa conexión a un archivo. ACADEMY_DATABASE_URL solo se
+utiliza para un proveedor externo o las pruebas locales.
+Para un proveedor externo, ACADEMY_DATABASE_ENVIRONMENT debe ser production
+para producción y el ID exacto del despliegue para una vista previa. Una vista previa rechaza el marcador production.
+No compartir una URL de producción con vistas previas.
+Las pruebas usan @netlify/database-dev y datos ficticios efímeros.
+
+INVITACIONES
+Las rutas POST /api/academy/gift-grant y gift-revoke requieren un secreto dedicado
+ACADEMY_MEMBERSHIP_ADMIN_SECRET de al menos 32 bytes, diferente del puente antiguo.
+No poner este secreto en el navegador ni en Shopify Liquid público.
+Concesión: userId confirmado, plan home/professional y reference única por premio.
+Regalo válido indefinidamente hasta revoked_at; revocarlo no elimina un pago
+vigente independiente. La referencia única y transacción impiden canjes dobles.
+El receptor reconoce los dos códigos de premio preparados únicamente al recibir
+un alta inicial con pedido pagado y modalidad coincidente. Los nuevos códigos
+requieren incorporarse a ACADEMY_PRIZE_CODES, JSON privado solo para funciones,
+antes de entregarlos. No publicar códigos reales en el código o sus pruebas.
+No eliminar solamente el cupón y asumir que ha desaparecido una invitación ya
+canjeada. No retirar un descuento de una suscripción gratuita para empezar a
+cobrar: al revocar el premio, cancelar su contrato gratuito y retirar el permiso.
+
+COBROS
+Shopify Product 16413096051075 sigue DRAFT y requiresSellingPlan=true.
+Variante Home 63157065908611: 2.90 EUR.
+Variante profesional 63157080621443: 4.90 EUR.
+Appstle grupo 100597137795, Academy PEPPO’S · mensual día 1, guardado.
+Modalidad mensual, importe completo al alta, renovación día 1, no cutoff, sin
+descuento. Solo Academy; no modificar el grupo existente de suscripciones de café.
+La limitación de reintentos hasta el día 5 todavía debe revisarse por modalidad:
+no modificar recuperación de impagos global si afecta a productos de café.
+
+Appstle API Access muestra un suplemento de 50 USD/mes en el plan actual.
+No se ha contratado. Su panel confirma que los Flow Triggers están disponibles
+sin Flow Actions ni API: la ruta preferida a completar es Appstle trigger +
+acción nativa Send HTTP request, con autenticación y mínima información personal.
+Nunca usar ACTIVE como única prueba de un período pagado.
+
+VALIDACIÓN
+npm ci
+npm test
+npm run build
+Las pruebas cubren límites de vigencia, Home/Pro, clientes existentes, regalos,
+canjes concurrentes, auditoría, aislamiento de recetas y rechazo de DB incorrecta.
+La prueba visual local usa scripts/local-qa-server.mjs sobre dist, escucha solo
+127.0.0.1 y devuelve identidades ficticias. NO desplegar ese servidor.
+El build no copia scripts/, database/ ni netlify/lib/ al directorio público.
+El contenido/cálculo que se entrega al navegador sigue siendo código cliente:
+esta versión protege recetas e historial en servidor, no ofrece DRM del cálculo.
+El endurecimiento del acceso al contenido y el flujo completo de pago deben
+revisarse antes de abrir ventas públicas.
+
+RECEPTOR FLOW
+POST /api/academy-shopify/flow requiere ACADEMY_FLOW_SECRET (mínimo 32 bytes).
+No compartir este secreto con el navegador del comprador; usar secretos de Flow.
+El receptor rechaza tiendas, moneda, productos y modalidades ajenos; exige pago
+confirmado y una renovación el día 1. Guarda un recibo idempotente por pedido.
+Los recibos no contienen el correo en claro: se guarda su huella SHA-256.
+El usuario debe iniciar sesión en Academy con el mismo correo verificado que
+en la compra. Una transacción vincula esa huella a una sola cuenta y crea el
+permiso correspondiente. Una selección de plan o una URL de retorno no activan.
+
+Borrador renovación: Appstle Subscription Billing Success -> Send HTTP request.
+Borrador alta 01a17ea8-e7df-75bf-8ae6-fca6462d327d: Subscription Created.
+Cuerpo Liquid corregido con topic initial_paid, originalOrderId,
+order.displayFinancialStatus, createAt, nextBillingDate, moneda, bucles escalares
+de lineItems y order.discountCodes. Guardado sin errores de variables.
+Comprobar en checkout el momento exacto de PAID; si Created llega antes del
+pago confirmado, usar un evento de pedido pagado con enriquecimiento seguro.
+Borrador de renovación 01a17e92-c820-73d2-8a31-8f46c5c7c5b9:
+Subscription Billing Success, bucle Liquid escalar guardado.
+Ambos inactivos y sin secreto real. No activar antes de la prueba completa.
+No activar con Authorization: Bearer PENDING_SECURE_CONFIGURATION.
+No se han configurado secretos reales ni activado los flujos. El servicio
+de datos aparece habilitado; su ramal de prueba aún no está disponible. Faltan pruebas de checkout (incluyendo regalo sin tarjeta), reembolsos
+y revocación coordinada de contrato gratuito y permiso antes de abrir ventas.
+
+COMPROBACIÓN DE ALMACENAMIENTO, 27/10/2026
+El usuario autorizó conexión privada y publicación tras las comprobaciones.
+La comprobación anterior usó el ID del despliegue como nombre del ramal; era
+incorrecto. El panel confirmó el ramal codex/barista-plans-20261027. Tras dar
+acceso a Academy en la instalación de GitHub, el PR 11 generó el deploy remoto
+6ae0fb95ec75a5f4f04d71cb y aplicó las dos primeras migraciones sin pendientes.
+La tercera migración añade identificación de contrato/pedido y revocaciones para
+cancelaciones de premios y reembolsos; debe verificarse en la siguiente compilación.
+La producción conserva los iconos mientras no se haya completado la validación.
+
+La clave de Flow y el catálogo de premios se guardan solo como secretos de
+funciones en Netlify. No registrar sus valores en logs, archivos ni Git.
+Las plantillas de Flow deben filtrar los productos de Academy antes de incluir
+correo o datos del pedido; un evento ajeno solo envía topic ignored, sin PII.
+Los recibos requieren contractId. Añadir subscriptionId al cuerpo de alta y
+renovación. Una cancelación de pago conserva el período abonado; cancelar el
+contrato de un premio retira ese premio y sus renovaciones de importe cero.
+Un reembolso completo de la línea Academy revoca solo ese pedido. Registrar
+primero el evento de revocación permite rechazar pagos recibidos fuera de orden.
+No tocar recuperación de pagos global ni otras aplicaciones para fijar Academy.

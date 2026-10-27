@@ -1,6 +1,9 @@
 import { admin, getUser, verifyRequestOrigin } from '@netlify/identity';
 import { getStore, getDeployStore } from '@netlify/blobs';
 import { randomUUID, timingSafeEqual } from 'node:crypto';
+import { claimReceipts } from '../lib/shopify-receipts.mjs';
+import { resolveAccess } from '../../src/academy-plans.mjs';
+import { membershipPool, getGrants, giftGrant, revokeGift } from '../lib/memberships.mjs';
 import { cleanText, dayInMadrid, groupDaily, normalizeRecord, publicProfile, validDay } from '../../src/academy-access-core.mjs';
 
 const json = (data, status = 200) => Response.json(data, { status, headers: { 'Cache-Control': 'no-store' } });
@@ -54,21 +57,44 @@ export default async function handler(req, context) {
     const action = context.params.action;
     const method = req.method.toUpperCase();
     const isAdmin = bridgeAdmin(req);
+    const membershipSecret = String(process.env.ACADEMY_MEMBERSHIP_ADMIN_SECRET || '');
+    const bearer = String(req.headers.get('authorization') || '').replace(/^Bearer /i, '');
+    const isMembershipAdmin = membershipSecret.length >= 32 && Buffer.byteLength(bearer) === Buffer.byteLength(membershipSecret)
+      && timingSafeEqual(Buffer.from(bearer), Buffer.from(membershipSecret));
+    if (['gift-grant', 'gift-revoke'].includes(action)) {
+      if (!isMembershipAdmin) return error('Acceso de administración requerido.', 403);
+      if (method !== 'POST') return error('Método no permitido.', 405);
+      const db = membershipPool(context);
+      if (!db) return error('Las invitaciones comerciales todavía no están activadas.', 503);
+      const data = await requestBody(req);
+      if (action === 'gift-revoke') return json({ revoked: await revokeGift(db, String(data.id || ''), 'academy-administration') });
+      const target = await admin.getUser(String(data.userId || '')).catch(() => null);
+      if (!target?.confirmedAt) return error('La cuenta invitada debe existir y tener el correo confirmado.', 400);
+      return json({ id: await giftGrant(db, { userId: target.id, plan: data.plan, reference: data.reference, actor: 'academy-administration' }) });
+    }
     if (!isAdmin && !['GET', 'HEAD'].includes(method)) verifyRequestOrigin(req);
     const user = isAdmin ? null : await verifiedUser(req);
     if (!isAdmin && !user) return error('La API no recibió tu sesión. Cierra sesión y vuelve a entrar.', 401);
     if (!isAdmin && !user.confirmedAt) return error('No se pudo verificar que tu correo esté confirmado en Identity. Consulta con el administrador de Peppos.', 403);
     const profile = user ? await read(profileKey(user.id)) : null;
 
-    if (action === 'me' && method === 'GET') return json({ user: { id: user.id, email: user.email }, profile: publicProfile(profile) });
+    const legacy = profile?.status === 'approved' && !profile.commercial;
+    const db = user && !legacy ? membershipPool(context) : null;
+    if (db) await claimReceipts(db, user);
+    const access = resolveAccess(profile, user && !legacy ? await getGrants(db, user.id) : []);
+    if (action === 'me' && method === 'GET') {
+      if (!user) return error('Se requiere una cuenta personal.', 403);
+      return json({ user: { id: user.id, email: user.email }, profile: publicProfile(profile), access });
+    }
 
     if (action === 'request' && method === 'POST') {
-      if (profile?.status === 'approved') return error('Tu acceso ya está aprobado.', 409);
+      if (access.allowed) return error('Tu acceso ya está activo.', 409);
       const data = await requestBody(req);
       const name = cleanText(data.name, 100);
       const requestedLocal = cleanText(data.local, 100);
-      if (name.length < 2 || requestedLocal.length < 2) return error('Indica tu nombre y el local.');
-      const next = { id: user.id, email: user.email, name, requestedLocal, localId: null, localName: null, status: 'pending', requestedAt: new Date().toISOString(), reviewedAt: null };
+      const requestedPlan = data.plan === 'professional' ? 'professional' : 'home';
+      if (name.length < 2 || requestedPlan === 'professional' && requestedLocal.length < 2) return error('Indica tu nombre y, para profesional, el local.');
+      const next = { id: user.id, email: user.email, name, requestedLocal, localId: null, localName: null, status: 'pending', commercial: true, requestedPlan, requestedAt: new Date().toISOString(), reviewedAt: null };
       await write(profileKey(user.id), next);
       return json({ profile: publicProfile(next) }, 201);
     }
@@ -104,7 +130,14 @@ export default async function handler(req, context) {
     }
 
     if (action === 'record' && method === 'POST') {
-      if (profile?.status !== 'approved' || !profile.localId) return error('Tu acceso sigue pendiente o ha sido retirado.', 403);
+      if (!access.canSave) return error('Guardar recetas requiere Barista profesional activo.', 403);
+      if (!legacy) {
+        const data = await requestBody(req);
+        const record = { ...normalizeRecord(data.record), id: randomUUID(), day: dayInMadrid(), createdAt: new Date().toISOString(), userId: user.id };
+        await db.query('INSERT INTO academy_private_recipes(id,user_id,day,record) VALUES($1,$2,$3,$4)', [record.id,user.id,record.day,JSON.stringify(record)]);
+        return json({ record }, 201);
+      }
+      if (!profile.localId) return error('Falta el local de tu cuenta.', 403);
       const local = await read(localKey(profile.localId));
       if (!local?.active) return error('El local ya no está activo.', 403);
       const data = await requestBody(req);
@@ -122,7 +155,12 @@ export default async function handler(req, context) {
         const [records, locals] = await Promise.all([list(`records/${day}/`), list('locals/')]);
         return json({ day, groups: groupDaily(records, locals) });
       }
-      if (profile?.status !== 'approved' || !profile.localId) return error('Tu acceso sigue pendiente o ha sido retirado.', 403);
+      if (!access.canHistory) return error('El seguimiento requiere Barista profesional activo.', 403);
+      if (!legacy) {
+        const result = await db.query('SELECT record FROM academy_private_recipes WHERE user_id=$1 AND day=$2 ORDER BY created_at DESC',[user.id,day]);
+        return json({ day, records: result.rows.map(row => row.record) });
+      }
+      if (!profile.localId) return error('Falta el local de tu cuenta.', 403);
       const records = await list(`records/${day}/${profile.localId}/`);
       return json({ day, records: records.filter((record) => record.userId === user.id).sort((a,b) => String(b.createdAt).localeCompare(String(a.createdAt))) });
     }

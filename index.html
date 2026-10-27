@@ -7,15 +7,23 @@
     <meta name="description" content="Calibrador de espresso y café filtrado para Peppos Coffee Academy." />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/icons/pepos-icon.svg" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="/icons/pepos-icon-192.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/academy-20261027-1/apple-touch-icon-152.png" />
+    <link rel="apple-touch-icon" sizes="167x167" href="/icons/academy-20261027-1/apple-touch-icon-167.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/academy-20261027-1/apple-touch-icon-180.png" />
     <link rel="stylesheet" href="/src/styles.css" />
-    <title>Peppos Dial-In</title>
+    <meta name="application-name" content="Academy PEPPO’S" />
+    <meta name="apple-mobile-web-app-title" content="Academy PEPPO’S" />
+    <title>Academy PEPPO’S</title>
   </head>
-  <body data-experience="home">
+  <body data-experience="home" data-plan="none">
     <div class="access-gate" id="academyAccessGate" aria-live="polite">
       <div class="access-card">
         <img src="/assets/peppos-coffee-academy.jpeg" alt="Peppos Coffee Academy" />
-        <h1>Acceso a Academy</h1>
+        <h1>Tu café, mejor cada día.</h1>
+        <p>Academy PEPPO’S · Para baristas en casa y profesionales.</p>
+        <div class="membership-cards"><article><span>BARISTA HOME</span><h2>Barista en casa</h2><strong>2,90 €<small>/mes</small></strong><p>Calibra y prepara. Sin guardar recetas ni seguimiento.</p></article><article><span>PARA TU LOCAL</span><h2>Barista profesional</h2><strong>4,90 €<small>/mes</small></strong><p>Calibra, guarda tus recetas y sigue cada preparación.</p></article></div>
+        <p class="membership-note">Suscríbete en la tienda y crea tu cuenta aquí con el mismo correo de la compra. Las cuentas actuales mantienen su acceso.</p>
+        <p class="membership-note"><a href="https://pepposcoffee.com/products/academy-peppo-s-acceso-mensual" target="_blank" rel="noopener">Elegir mi suscripción</a> · <a href="https://peppos-coffee.myshopify.com/apps/subscriptions" target="_blank" rel="noopener">Gestionar mi suscripción</a></p>
         <p id="academyAccessMessage" role="status">Comprobando tu acceso…</p>
         <form id="academyLoginForm" hidden>
           <h2>Ya tengo acceso</h2>
@@ -25,7 +33,7 @@
           <p id="academyLoginFeedback" class="access-feedback" role="alert" hidden></p>
           <button class="text-button" id="resendAcademyConfirmation" type="button" hidden>Reenviar correo de confirmación</button>
           <button class="text-button" id="showAcademyRecovery" type="button">¿Has olvidado tu contraseña?</button>
-          <button class="text-button" id="showAcademySignup" type="button">¿Primera vez? Solicitar acceso</button>
+          <button class="text-button" id="showAcademySignup" type="button">¿Primera vez? Crear mi cuenta</button>
         </form>
         <form id="academyRecoveryForm" hidden>
           <h2>Recuperar contraseña</h2>
@@ -45,21 +53,23 @@
           <button class="primary-button" type="submit">Guardar contraseña</button>
         </form>
         <form id="academySignupForm" hidden>
-          <h2>Solicitar acceso</h2>
-          <p>Indica tus datos y tu local. El administrador confirmará que pertenece a Peppos.</p>
+          <h2>Tu cuenta de barista</h2>
+          <p>Elige cómo preparas tu café. La modalidad elegida no activa una suscripción ni realiza un cobro.</p>
           <label><span>Tu nombre</span><input name="name" minlength="2" maxlength="100" autocomplete="name" required /></label>
-          <label><span>Nombre del local</span><input name="local" minlength="2" maxlength="100" autocomplete="organization" required /></label>
+          <label><span>Modalidad</span><select name="plan"><option value="home">Barista en casa · 2,90 €/mes</option><option value="professional">Barista profesional · 4,90 €/mes</option></select></label>
+          <label data-local-field hidden><span>Nombre del local</span><input name="local" minlength="2" maxlength="100" autocomplete="organization" /></label>
           <label><span>Correo electrónico</span><input name="email" type="email" autocomplete="email" required /></label>
           <label><span>Contraseña</span><input name="password" type="password" minlength="8" autocomplete="new-password" required /></label>
-          <p>Crea una contraseña para entrar cuando se apruebe tu solicitud. Antes tendrás que confirmar tu correo.</p>
-          <button class="primary-button" type="submit">Solicitar acceso</button>
+          <p>Usa el mismo correo de tu compra y confírmalo con el enlace que recibirás. Tu suscripción o premio se vinculará automáticamente al entrar.</p>
+          <button class="primary-button" type="submit">Crear mi cuenta</button>
           <button class="text-button" id="showAcademyLogin" type="button">Ya tengo acceso · Entrar</button>
         </form>
         <form id="academyRequestForm" hidden>
-          <h2>Solicitar acceso</h2>
+          <h2>Tu cuenta de barista</h2>
           <label><span>Tu nombre</span><input name="name" minlength="2" maxlength="100" autocomplete="name" required /></label>
-          <label><span>Nombre del local</span><input name="local" minlength="2" maxlength="100" autocomplete="organization" required /></label>
-          <p>El administrador comprobará el local y aprobará tu acceso.</p>
+          <label><span>Modalidad</span><select name="plan"><option value="home">Barista en casa · 2,90 €/mes</option><option value="professional">Barista profesional · 4,90 €/mes</option></select></label>
+          <label data-local-field hidden><span>Nombre del local</span><input name="local" minlength="2" maxlength="100" autocomplete="organization" /></label>
+          <p>El acceso de suscripción se activará tras verificar la compra o la invitación. Crear la cuenta no genera ningún cargo.</p>
           <button class="primary-button" type="submit">Enviar solicitud</button>
         </form>
         <button class="text-button" id="resendSignedInConfirmation" type="button" hidden>Reenviar correo de confirmación</button>
@@ -73,6 +83,7 @@
           <span class="product-name">ACADEMY</span>
         </a>
         <div class="top-actions">
+          <span class="membership-badge" id="membershipBadge">Barista</span>
           <span class="network-status" id="networkStatus"><i></i><span>Con conexión</span></span>
           <button class="icon-button install-button" id="installButton" type="button" hidden title="Instalar aplicación" aria-label="Instalar aplicación">
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 21h14"/></svg>
@@ -87,15 +98,15 @@
         <section class="intro-band" aria-labelledby="pageTitle">
           <div>
             <p class="eyebrow" id="methodEyebrow">Calibración de café de especialidad</p>
-            <h1 id="pageTitle">Afina el punto y saca el mejor partido del café de Peppo’s.</h1>
+            <h1 id="pageTitle">Tu próxima taza empieza aquí.</h1>
           </div>
           <p class="intro-copy" id="methodIntro">Introduce la receta real. Peppos separa el ajuste de ratio del ajuste de molienda.</p>
         </section>
 
-        <div class="experience-switch" role="group" aria-label="Nivel de detalle">
-          <span>Estoy preparando café</span>
-          <button type="button" data-experience="home" aria-pressed="true">En casa</button>
-          <button type="button" data-experience="professional" aria-pressed="false">Profesional</button>
+        <div class="experience-switch" role="group" aria-label="Tu modalidad de barista">
+          <span>Soy barista</span>
+          <button type="button" data-experience="home" aria-pressed="true">Barista en casa</button>
+          <button type="button" data-experience="professional" aria-pressed="false">Barista profesional</button>
         </div>
 
         <section class="manual-workspace" id="manualWorkspace" aria-labelledby="manualTitle">
@@ -258,7 +269,7 @@
               <p class="espresso-next" id="espressoNextAction"></p>
             </div>
 
-            <div class="espresso-comparison pro-only">
+            <div class="espresso-comparison pro-only" data-professional-feature>
               <button class="text-button" id="compareLastButton" type="button" aria-expanded="false">Comparar con el último registro</button>
               <p id="compareLastText" hidden></p>
             </div>
@@ -309,7 +320,7 @@
           </section>
         </section>
 
-        <section class="save-band" aria-labelledby="saveTitle">
+        <section data-professional-feature class="save-band" aria-labelledby="saveTitle">
           <div class="section-heading">
             <div>
               <span class="step-number">03</span>
@@ -318,7 +329,7 @@
           </div>
           <div class="save-fields">
             <label><span>Cliente o local</span><input id="clientName" type="text" placeholder="Peppos Coffee Centro" maxlength="60" /></label>
-            <label><span>Café Peppos</span><input id="coffeeName" type="text" placeholder="Escribe el nombre del café" maxlength="80" /></label>
+            <label><span>Nombre del café</span><input id="coffeeName" type="text" placeholder="Escribe el nombre del café" maxlength="80" /></label>
             <label class="pro-only"><span>Proceso del café · opcional</span><select id="coffeeProcess"><option value="">Sin indicar</option><option value="washed">Lavado</option><option value="honey">Honey</option><option value="natural">Natural</option><option value="cofermented">Cofermentado</option><option value="other">Otro / no lo sé</option></select></label>
             <label class="pro-only"><span>Máquina</span><input id="machineName" type="text" placeholder="La Marzocco Linea PB" maxlength="60" /></label>
             <label class="pro-only"><span>Molinillo</span><input id="grinderName" type="text" placeholder="Mahlkönig E65S" maxlength="60" /></label>
@@ -328,10 +339,10 @@
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5V3Zm3 0v6h8V3M8 21v-7h8v7"/></svg>
             Guardar registro
           </button>
-          <p class="storage-note">Las calibraciones nuevas se guardan en el historial central del local. Los registros anteriores de este dispositivo permanecen aquí.</p>
+          <p class="storage-note">Las calibraciones nuevas se guardan en tu historial. Tus recetas se asocian a tu cuenta. Los registros anteriores de este dispositivo permanecen aquí.</p>
         </section>
 
-        <section class="history-section" id="history" aria-labelledby="historyTitle">
+        <section data-professional-feature class="history-section" id="history" aria-labelledby="historyTitle">
           <div class="section-heading">
             <div>
               <span class="step-number">04</span>
@@ -339,6 +350,7 @@
             </div>
             <button class="text-button" id="exportButton" type="button">Exportar CSV</button>
           </div>
+          <label class="history-date"><span>Fecha de seguimiento</span><input id="historyDate" type="date" /></label>
           <div class="history-list" id="historyList"></div>
           <div class="empty-state" id="emptyHistory">
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 3h10l1 4H6l1-4Zm-1 4h12l1 14H5L6 7Zm3 4h6"/></svg>
@@ -350,6 +362,7 @@
       <footer>
         <span>PEPPOS COFFEE ACADEMY</span>
         <p>Precisión al servicio del sabor.</p>
+        <p><a href="https://peppos-coffee.myshopify.com/apps/subscriptions" target="_blank" rel="noopener">Gestionar mi suscripción</a></p>
       </footer>
     </div>
 
