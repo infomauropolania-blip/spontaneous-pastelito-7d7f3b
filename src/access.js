@@ -15,6 +15,7 @@ const resetFeedback = document.querySelector('#academyResetFeedback');
 const toggleResetPasswords = document.querySelector('#toggleAcademyResetPasswords');
 const recoveryPendingKey = 'academy-password-recovery';
 let approved = false;
+let permissions = { allowed: false, canSave: false, canHistory: false, plan: null };
 
 onAuthChange((event) => {
   if ([AUTH_EVENTS.LOGIN, AUTH_EVENTS.RECOVERY, AUTH_EVENTS.TOKEN_REFRESH, AUTH_EVENTS.USER_UPDATED].includes(event)) {
@@ -57,6 +58,7 @@ async function api(action, options = {}) {
 
 async function refreshAccess() {
   approved = false;
+  publishAccess({ allowed: false, canSave: false, canHistory: false, plan: null });
   view();
   notice('Comprobando tu acceso…');
   try {
@@ -83,29 +85,16 @@ async function refreshAccess() {
         : 'No se pudo comprobar si tu correo está confirmado. Vuelve a abrir Academy con conexión; si continúa, consulta con el administrador de Peppos.');
       return;
     }
-    const { profile } = await api('me');
-    if (!profile) {
-      const request = document.getElementById('academyRequestForm');
-      const name = user.userMetadata?.full_name || user.name || '';
-      const local = user.userMetadata?.academy_local || '';
-      request.elements.name.value = name;
-      request.elements.local.value = local;
-      if (name.trim().length >= 2 && local.trim().length >= 2) {
-        try {
-          await api('request', { method: 'POST', body: { name, local } });
-          notice(`Solicitud enviada para ${local}. El administrador comprobará el local antes de aprobarte.`);
-          return;
-        } catch (error) { notice(`Confirma tu solicitud: ${friendlyError(error)}`); }
-      } else notice('Correo confirmado. Indica tu nombre y el local para solicitar acceso.');
-      view('academyRequestForm');
-      return;
-    }
-    if (profile.status === 'pending') {
-      notice(`Tu solicitud para ${profile.requestedLocal} está pendiente de aprobación en Gestión.`);
-      return;
-    }
-    if (profile.status !== 'approved') {
-      notice('Tu acceso está retirado. Consulta con el administrador de Peppos.');
+    const { profile, access } = await api('me');
+    publishAccess(access);
+    if (!access?.allowed) {
+      if (!profile) {
+        document.getElementById('academyRequestForm').elements.name.value = user.userMetadata?.full_name || user.name || '';
+        view('academyRequestForm');
+        notice('Completa tu perfil de barista. La suscripción y los códigos de premio estarán disponibles próximamente.');
+      } else {
+        notice('Tu cuenta está creada. El acceso se activará al verificar tu suscripción o invitación. Todavía no se realizan cobros.');
+      }
       return;
     }
     approved = true;
@@ -117,7 +106,7 @@ async function refreshAccess() {
 }
 
 document.getElementById('showAcademySignup').addEventListener('click', () => {
-  loginNotice('Indica tu correo, nombre y local. Después confirmarás el correo para enviar la solicitud.');
+  loginNotice('Elige tu modalidad y crea tu cuenta. No se realiza ningún cobro.');
   view('academySignupForm');
 });
 document.getElementById('showAcademyLogin').addEventListener('click', () => {
@@ -246,13 +235,14 @@ document.getElementById('academySignupForm').addEventListener('submit', async (e
   try {
     const name = form.elements.name.value.trim();
     const local = form.elements.local.value.trim();
-    if (name.length < 2 || local.length < 2) throw new Error('Indica tu nombre y el nombre del local.');
-    sessionStorage.setItem('academy-request-draft', JSON.stringify({ name, local }));
-    const user = await signup(form.elements.email.value.trim(), form.elements.password.value, { full_name: name, academy_local: local });
+    const plan = form.elements.plan.value;
+    if (name.length < 2 || plan === 'professional' && local.length < 2) throw new Error('Indica tu nombre y, para profesional, el local.');
+    sessionStorage.setItem('academy-request-draft', JSON.stringify({ name, local, plan }));
+    const user = await signup(form.elements.email.value.trim(), form.elements.password.value, { full_name: name, academy_local: local, academy_requested_plan: plan });
     if (user.confirmedAt) await refreshAccess();
     else {
       view();
-      notice('Te hemos enviado un enlace para confirmar el correo. Al abrirlo, Academy enviará tu solicitud al administrador. Revisa también el correo no deseado.');
+      notice('Te hemos enviado un enlace para confirmar el correo. Después podrás completar tu perfil de barista. Revisa también el correo no deseado.');
     }
   } catch (error) { notice(friendlyError(error)); }
   finally { button.disabled = false; }
@@ -265,11 +255,12 @@ document.getElementById('academyRequestForm').addEventListener('submit', async (
   try {
     const name = form.elements.name.value.trim();
     const local = form.elements.local.value.trim();
-    if (name.length < 2 || local.length < 2) throw new Error('Indica tu nombre y el nombre del local.');
-    await api('request', { method: 'POST', body: { name, local } });
+    const plan = form.elements.plan.value;
+    if (name.length < 2 || plan === 'professional' && local.length < 2) throw new Error('Indica tu nombre y, para profesional, el local.');
+    await api('request', { method: 'POST', body: { name, local, plan } });
     sessionStorage.removeItem('academy-request-draft');
     view();
-    notice(`Solicitud enviada para ${local}. El administrador comprobará el local antes de aprobarte.`);
+    notice('Perfil enviado. Todavía no se realizan cobros; el acceso se activará al verificar tu suscripción o invitación.');
   } catch (error) { notice(friendlyError(error)); }
   finally { button.disabled = false; }
 });
@@ -280,8 +271,10 @@ signOut.addEventListener('click', async () => {
 
 window.PepposAcademyAccess = {
   get approved() { return approved; },
+  get permissions() { return permissions; },
+  async history(day) { if (!permissions.canHistory) return []; return (await api(`history?day=${encodeURIComponent(day)}`)).records; },
   async saveRecord(record) {
-    if (!approved) throw new Error('Tu acceso a Academy aún no está aprobado.');
+    if (!approved || !permissions.canSave) throw new Error('Guardar recetas requiere Barista profesional activo.');
     try { return (await api('record', { method: 'POST', body: { record } })).record; }
     catch (error) {
       if (/pendiente|retirado|Confirma tu correo/i.test(error.message)) await refreshAccess();
@@ -289,6 +282,23 @@ window.PepposAcademyAccess = {
     }
   }
 };
+
+function publishAccess(access) {
+  permissions = access || { allowed: false, plan: null, canSave: false, canHistory: false };
+  document.body.dataset.plan = permissions.plan || 'none';
+  document.getElementById('membershipBadge').textContent = permissions.name || 'Barista';
+  window.dispatchEvent(new CustomEvent('academy-access-change', { detail: permissions }));
+}
+function updateLocalField(form) {
+  const professional = form.elements.plan.value === 'professional';
+  form.querySelector('[data-local-field]').hidden = !professional;
+  form.elements.local.required = professional;
+}
+for (const id of ['academySignupForm','academyRequestForm']) {
+  const form = document.getElementById(id);
+  form.elements.plan.addEventListener('change', () => updateLocalField(form));
+  updateLocalField(form);
+}
 
 handleAuthCallback().then((result) => {
   if (result?.type === 'recovery') sessionStorage.setItem(recoveryPendingKey, '1');
@@ -308,6 +318,26 @@ handleAuthCallback().then((result) => {
         const form = document.getElementById('academyRequestForm');
         form.elements.name.value = values.name || '';
         form.elements.local.value = values.local || '';
+        form.elements.plan.value = values.plan === 'professional' ? 'professional' : 'home';
+        updateLocalField(form);
       } catch { /* La persona puede rellenar los campos manualmente. */ }
     }
   });
+
+// Re-check server permissions while the app is in use; do not trust a stale client flag.
+let checkingMembership = false;
+async function recheckMembership() {
+  if (!approved || checkingMembership || document.visibilityState === 'hidden') return;
+  checkingMembership = true;
+  try {
+    const { access } = await api('me');
+    if (JSON.stringify(access) !== JSON.stringify(permissions)) publishAccess(access);
+    if (!access?.allowed) { approved = false; view(); notice('Tu acceso ha terminado o ha sido retirado. Tus recetas permanecen guardadas.'); }
+  } catch {
+    approved = false;
+    publishAccess({ allowed: false, plan: null, canSave: false, canHistory: false });
+    view(); notice('Conéctate y vuelve a entrar para comprobar tu acceso. Tus recetas permanecen guardadas.');
+  } finally { checkingMembership = false; }
+}
+setInterval(recheckMembership, 60000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') recheckMembership(); });

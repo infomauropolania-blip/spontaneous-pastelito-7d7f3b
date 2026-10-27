@@ -4,6 +4,7 @@ const STORAGE_KEY = 'pepos-dial-in-records-v1';
 const SETTINGS_KEY = 'pepos-dial-in-settings-v1';
 const FILTER_SETTINGS_KEY = 'peppos-dial-in-filter-settings-v1';
 const EXPERIENCE_KEY = 'peppos-academy-experience-v1';
+let cloudRecords = null;
 const METHOD_KEY = 'peppos-academy-selected-method-v1';
 const { calculateShot, interpretEspresso, clamp } = window.PepposCalculator;
 const { METHODS, calculateFilter } = window.PepposFilterCalculator;
@@ -12,7 +13,8 @@ const { search: searchMachines, exact: exactMachine } = window.PepposMachines;
 let activeMethod = 'espresso';
 
 function setExperience(mode) {
-  const selected = mode === 'professional' ? 'professional' : 'home';
+  const permitted = window.PepposAcademyAccess?.permissions?.plan;
+  const selected = mode === 'professional' && permitted === 'professional' ? 'professional' : 'home';
   document.body.dataset.experience = selected;
   $$('.experience-switch button[data-experience]').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.experience === selected)));
   localStorage.setItem(EXPERIENCE_KEY, selected);
@@ -215,7 +217,7 @@ function renderManualMethod() {
   $('#espressoWorkspace').hidden = activeMethod !== 'espresso';
   $('#filterWorkspace').hidden = activeMethod !== 'filter';
   $('#manualLayout').classList.toggle('linked-method', activeMethod !== 'manual');
-  $('#methodIntro').textContent = 'Recetas paso a paso para preparar, probar y guardar tu café.';
+  $('#methodIntro').textContent = window.PepposAcademyAccess?.permissions?.canSave ? 'Calibra, guarda tus recetas y sigue cada preparación.' : 'Recetas paso a paso para preparar, probar y mejorar tu café.';
   $('#manualRecipeTitle').textContent = guide.name;
   $('#manualRecipeLead').textContent = guide.lead;
   $('#manualRecipeNote').textContent = guide.note;
@@ -450,17 +452,22 @@ $('#timerButton').addEventListener('click', () => {
 });
 
 function getRecords() {
+  if (!window.PepposAcademyAccess?.permissions?.canHistory) return [];
+  if (cloudRecords) return cloudRecords;
+  if (!window.PepposAcademyAccess?.permissions?.legacy) return [];
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
   catch { return []; }
 }
 
 function setRecords(records) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+  cloudRecords = records;
+  if (window.PepposAcademyAccess?.permissions?.legacy) localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
   renderHistory();
   if (!$('#compareLastText').hidden) renderComparison();
 }
 
 function renderComparison() {
+  if (!window.PepposAcademyAccess?.permissions?.canHistory) return;
   const output = $('#compareLastText');
   const coffee = $('#coffeeName').value.trim().toLocaleLowerCase('es');
   const local = $('#clientName').value.trim().toLocaleLowerCase('es');
@@ -494,6 +501,7 @@ $('#compareLastButton').addEventListener('click', () => {
 }));
 
 $('#saveButton').addEventListener('click', async () => {
+  if (!window.PepposAcademyAccess?.permissions?.canSave) return showToast('Guardar recetas requiere Barista profesional');
   const result = activeMethod === 'manual' ? currentManualResult() : activeMethod === 'filter' ? currentFilterResult() : calculate();
   if (!result) return showToast('Revisa los valores de la receta');
   const coffeeName = $('#coffeeName').value.trim();
@@ -525,8 +533,9 @@ $('#saveButton').addEventListener('click', async () => {
   button.disabled = true;
   try {
     const saved = await window.PepposAcademyAccess.saveRecord(record);
-    setRecords([saved, ...getRecords()].slice(0, 100));
-    showToast('Calibración guardada en el historial del local');
+    if (window.PepposAcademyAccess.permissions.legacy) setRecords([saved, ...getRecords()].slice(0, 100));
+    else { historyDate.value = saved.day || todayInMadrid(); cloudRecords = [saved]; renderHistory(); await loadHistory(); }
+    showToast('Receta guardada en tu historial');
   } catch (error) {
     showToast(error.message || 'No se pudo guardar la calibración');
   } finally { button.disabled = false; }
@@ -559,15 +568,9 @@ function renderHistory() {
       <div class="history-metric"><span>Receta</span><strong>${escapeHtml(recipe)}</strong></div>
       <div class="history-metric"><span>Ratio</span><strong>${escapeHtml(ratio)}</strong></div>
       <div class="history-metric"><span>Tiempo</span><strong>${escapeHtml(time)}</strong></div>
-      <button class="delete-button" type="button" data-delete-id="${escapeHtml(record.id)}" title="Eliminar registro" aria-label="Eliminar registro de ${escapeHtml(record.client)}">
-        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3m3 0-1 14H7L6 7m4 4v6m4-6v6"/></svg>
-      </button>
     </article>`;
   }).join('');
-  $$('[data-delete-id]').forEach((button) => button.addEventListener('click', () => {
-    setRecords(getRecords().filter((record) => record.id !== button.dataset.deleteId));
-    showToast('Registro eliminado');
-  }));
+
 }
 
 function escapeHtml(value) {
@@ -579,6 +582,7 @@ function escapeHtml(value) {
 $('#historyButton').addEventListener('click', () => $('#history').scrollIntoView({ behavior: 'smooth' }));
 
 $('#exportButton').addEventListener('click', () => {
+  if (!window.PepposAcademyAccess?.permissions?.canHistory) return;
   const headers = ['Fecha', 'Cliente', 'Método', 'Café', 'Proceso', 'Lote u origen', 'Fecha tueste', 'Sabor buscado', 'Máquina', 'Molinillo', 'Notas', 'Dosis g', 'Bebida espresso g', 'Agua g', 'Ratio objetivo', 'Ratio real', 'Tiempo', 'Unidad tiempo', 'Tiempo estimado espresso s', 'Sabor', 'Intensidad', 'Diagnóstico', 'Temperatura °C', 'Molienda/técnica', 'Observaciones', 'Tipo cold brew', 'Dilución', 'Modelo superautomática', 'Intensidad máquina', 'Volumen ml', 'Ajuste molino'];
   const rows = getRecords().map((r) => [r.createdAt, r.client, r.type === 'manual' ? r.methodName || 'Manual' : r.type === 'filter' ? r.methodName || 'Filtro' : r.methodName || 'Espresso', r.coffeeName || '', r.process || '', r.lot || '', r.roastDate || '', r.flavorGoal || '', r.machine, r.grinder, r.notes, r.dose ?? '', r.actualYield ?? '', r.water ?? '', r.targetRatio ?? '', r.actualRatio == null ? '' : Number(r.actualRatio).toFixed(2), r.type === 'espresso' || !r.type ? r.actualTime ?? '' : r.time ?? '', r.type === 'manual' ? r.timeUnit || '' : 's', r.projectedTime == null ? '' : Number(r.projectedTime).toFixed(1), r.taste ?? '', r.strength ?? '', r.grindTitle || r.title || '', r.waterTemperature || '', r.grindNote || '', r.techniqueNote || '', r.brewStyle || '', r.dilution ?? '', r.model || '', r.strengthSetting || '', r.waterVolume ?? '', r.grinderSetting || '']);
   const csv = [headers, ...rows].map((row) => row.map((cell) => {
@@ -626,7 +630,19 @@ $('#installButton').addEventListener('click', async () => {
   $('#installButton').hidden = true;
 });
 
-if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));
+if ('serviceWorker' in navigator) window.addEventListener('load', () => {
+  navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then((registration) => {
+    const checkForUpdate = () => {
+      if (navigator.onLine) registration.update().catch(() => { /* Retry on the next visit. */ });
+    };
+    checkForUpdate();
+    window.addEventListener('pageshow', checkForUpdate);
+    window.addEventListener('online', checkForUpdate);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') checkForUpdate();
+    });
+  }).catch(() => { /* The app remains usable without a service worker. */ });
+});
 
 restoreSettings();
 try {
@@ -640,3 +656,30 @@ renderFilter();
 renderManualMethod();
 renderHistory();
 updateNetworkStatus();
+
+function todayInMadrid() { return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Madrid' }).format(new Date()); }
+const historyDate = $('#historyDate');
+historyDate.value = todayInMadrid();
+let historyRequest = 0;
+async function loadHistory() {
+  const permissions = window.PepposAcademyAccess?.permissions;
+  if (!permissions?.canHistory) return;
+  const request = ++historyRequest;
+  const day = historyDate.value || todayInMadrid();
+  try {
+    const records = await window.PepposAcademyAccess.history(day);
+    if (window.PepposAcademyAccess.permissions !== permissions || request !== historyRequest) return;
+    cloudRecords = records; renderHistory();
+  } catch { showToast('No se pudo cargar el seguimiento. Tus recetas siguen en el servidor.'); }
+}
+historyDate.addEventListener('change', () => { cloudRecords = []; renderHistory(); loadHistory(); });
+window.addEventListener('academy-access-change', ({ detail }) => {
+  historyRequest++;
+  cloudRecords = null;
+  setExperience(detail.plan === 'professional' ? 'professional' : 'home');
+  $('#methodIntro').textContent = detail.canSave ? 'Calibra, guarda tus recetas y sigue cada preparación.' : 'Recetas paso a paso para preparar, probar y mejorar tu café.';
+  $('#historyButton').hidden = !detail.canHistory;
+  $$('.experience-switch button').forEach(button => { button.disabled = button.dataset.experience !== detail.plan; });
+  renderHistory();
+  if (detail.canHistory) loadHistory();
+});

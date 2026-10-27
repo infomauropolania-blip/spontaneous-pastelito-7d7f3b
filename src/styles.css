@@ -320,3 +320,16 @@ footer p { margin: 0; font-size: 13px; }
   .ratio-gauge { width: 128px; }
   .target-yield strong { font-size: 32px; }
 }
+
+/* Membership permissions come from the authenticated server, not the selector. */
+body:not([data-plan="professional"]) [data-professional-feature] { display: none !important; }
+.membership-cards { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; margin: 22px 0; text-align: left; }
+.membership-cards article { border: 1px solid #76623c; border-radius: 16px; padding: 18px; background: #171713; }
+.membership-cards article > span { font-size: 10px; letter-spacing: .1em; color: #dbc184; }
+.membership-cards h2 { font-size: 17px; margin: 8px 0; }
+.membership-cards strong { font-size: 30px; color: #efd99e; }
+.membership-cards small { font-size: 13px; font-weight: 400; }
+.membership-cards p, .membership-note { font-size: 12px; line-height: 1.5; }
+.membership-badge { font-size: 11px; color: var(--gold); border: 1px solid #76623c; border-radius: 20px; padding: 7px 10px; }
+.experience-switch button:disabled { opacity: .4; cursor: default; }
+@media(max-width: 420px) { .membership-cards { grid-template-columns: 1fr; } .membership-badge { max-width: 100px; } }
