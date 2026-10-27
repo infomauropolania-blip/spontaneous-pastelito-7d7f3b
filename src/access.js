@@ -3,9 +3,12 @@ import { persistIdentityCookies, restoreIdentitySession } from './identity-sessi
 
 const gate = document.querySelector('#academyAccessGate');
 const shell = document.querySelector('.app-shell');
+const boot = document.querySelector('#academyBoot');
 const message = document.querySelector('#academyAccessMessage');
 const forms = ['academyLoginForm', 'academySignupForm', 'academyRequestForm', 'academyRecoveryForm', 'academyResetForm'].map((id) => document.getElementById(id));
 const signOut = document.querySelector('#academySignOut');
+const checkAccess = document.querySelector('#checkAcademyAccess');
+const accountEmail = document.querySelector('#academyAccountEmail');
 const loginFeedback = document.querySelector('#academyLoginFeedback');
 const recoveryFeedback = document.querySelector('#academyRecoveryFeedback');
 const resendConfirmation = document.querySelector('#resendAcademyConfirmation');
@@ -24,6 +27,7 @@ onAuthChange((event) => {
 });
 
 function view(formId = '') {
+  boot.hidden = true;
   gate.hidden = false;
   shell.hidden = true;
   for (const form of forms) form.hidden = form.id !== formId;
@@ -59,12 +63,16 @@ async function api(action, options = {}) {
 async function refreshAccess() {
   approved = false;
   publishAccess({ allowed: false, canSave: false, canHistory: false, plan: null });
-  view();
+  boot.hidden = false;
+  gate.hidden = true;
+  shell.hidden = true;
   notice('Comprobando tu acceso…');
   try {
     const restored = await restoreIdentitySession(refreshSession);
     if (!restored && !document.cookie.split(';').some((part) => part.trim().startsWith('nf_jwt='))) {
       signOut.hidden = true;
+      checkAccess.hidden = true;
+      accountEmail.textContent = '';
       notice('Entra con el mismo correo y contraseña de tu cuenta. Perder la sesión no cambia tu contraseña.');
       view('academyLoginForm');
       return;
@@ -73,6 +81,8 @@ async function refreshAccess() {
     persistIdentityCookies();
     const user = await getUser();
     signOut.hidden = !user;
+    checkAccess.hidden = !user;
+    accountEmail.textContent = user?.email ? `Sesión: ${user.email}` : '';
     resendSignedInConfirmation.hidden = !user || Boolean(user.confirmedAt) || !user.confirmationSentAt;
     if (!user) {
       notice('Entra con el mismo correo y contraseña de tu cuenta. Perder la sesión no cambia tu contraseña.');
@@ -93,15 +103,18 @@ async function refreshAccess() {
         view('academyRequestForm');
         notice('Completa tu perfil de barista. Usa el mismo correo con el que compraste la suscripción o canjeaste tu premio en la tienda.');
       } else {
-        notice('Tu cuenta está creada. Si ya compraste o canjeaste un premio, comprueba que utilizaste este mismo correo. Vuelve a entrar en unos minutos para verificar tu acceso.');
+        notice('Tu sesión está abierta, pero todavía no hemos vinculado una suscripción o invitación activa a este correo. Si ya compraste, comprueba que sea el mismo correo del pedido y pulsa «Comprobar mi acceso».');
       }
       return;
     }
     approved = true;
+    boot.hidden = true;
     gate.hidden = true;
     shell.hidden = false;
   } catch (error) {
     notice(error.message || 'No se pudo comprobar el acceso.');
+  } finally {
+    if (!approved && gate.hidden) view();
   }
 }
 
@@ -260,9 +273,15 @@ document.getElementById('academyRequestForm').addEventListener('submit', async (
     await api('request', { method: 'POST', body: { name, local, plan } });
     sessionStorage.removeItem('academy-request-draft');
     view();
-    notice('Perfil enviado. Todavía no se realizan cobros; el acceso se activará al verificar tu suscripción o invitación.');
+    notice('Perfil guardado. Si ya compraste o canjeaste un premio con este correo, pulsa «Comprobar mi acceso». Crear el perfil no realiza ningún cobro.');
   } catch (error) { notice(friendlyError(error)); }
   finally { button.disabled = false; }
+});
+checkAccess.addEventListener('click', async () => {
+  checkAccess.disabled = true;
+  checkAccess.textContent = 'Comprobando…';
+  try { await refreshAccess(); }
+  finally { checkAccess.disabled = false; checkAccess.textContent = 'Comprobar mi acceso'; }
 });
 signOut.addEventListener('click', async () => {
   await logout();

@@ -630,19 +630,20 @@ $('#installButton').addEventListener('click', async () => {
   $('#installButton').hidden = true;
 });
 
-if ('serviceWorker' in navigator) window.addEventListener('load', () => {
+if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then((registration) => {
     const checkForUpdate = () => {
       if (navigator.onLine) registration.update().catch(() => { /* Retry on the next visit. */ });
     };
     checkForUpdate();
     window.addEventListener('pageshow', checkForUpdate);
+    window.addEventListener('pagehide', checkForUpdate);
     window.addEventListener('online', checkForUpdate);
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') checkForUpdate();
     });
   }).catch(() => { /* The app remains usable without a service worker. */ });
-});
+}
 
 restoreSettings();
 try {

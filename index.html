@@ -10,13 +10,18 @@
     <link rel="apple-touch-icon" sizes="152x152" href="/icons/academy-20261027-1/apple-touch-icon-152.png" />
     <link rel="apple-touch-icon" sizes="167x167" href="/icons/academy-20261027-1/apple-touch-icon-167.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/icons/academy-20261027-1/apple-touch-icon-180.png" />
-    <link rel="stylesheet" href="/src/styles.css" />
+    <link rel="stylesheet" href="/src/styles.css?v=startup-20261027-1" />
     <meta name="application-name" content="Academy PEPPO’S" />
     <meta name="apple-mobile-web-app-title" content="Academy PEPPO’S" />
     <title>Academy PEPPO’S</title>
   </head>
   <body data-experience="home" data-plan="none">
-    <div class="access-gate" id="academyAccessGate" aria-live="polite">
+    <div class="academy-boot" id="academyBoot" role="status" aria-live="polite">
+      <img src="/icons/academy-20261027-1/icon-192.png" width="88" height="88" alt="" />
+      <p>Academy PEPPO’S</p>
+      <span>Abriendo…</span>
+    </div>
+    <div class="access-gate" id="academyAccessGate" aria-live="polite" hidden>
       <div class="access-card">
         <img src="/assets/peppos-coffee-academy.jpeg" alt="Peppos Coffee Academy" />
         <h1>Tu café, mejor cada día.</h1>
@@ -25,6 +30,8 @@
         <p class="membership-note">Suscríbete en la tienda y crea tu cuenta aquí con el mismo correo de la compra. Las cuentas actuales mantienen su acceso.</p>
         <p class="membership-note"><a href="https://pepposcoffee.com/products/academy-peppo-s-acceso-mensual" target="_blank" rel="noopener">Elegir mi suscripción</a> · <a href="https://peppos-coffee.myshopify.com/apps/subscriptions" target="_blank" rel="noopener">Gestionar mi suscripción</a></p>
         <p id="academyAccessMessage" role="status">Comprobando tu acceso…</p>
+        <p id="academyAccountEmail" class="membership-note"></p>
+        <button class="primary-button" id="checkAcademyAccess" type="button" hidden>Comprobar mi acceso</button>
         <form id="academyLoginForm" hidden>
           <h2>Ya tengo acceso</h2>
           <label><span>Correo electrónico</span><input name="email" type="email" autocomplete="email" required /></label>
@@ -367,11 +374,11 @@
     </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="/src/calculator.js" defer></script>
-    <script src="/src/filter-calculator.js" defer></script>
-    <script src="/src/manual-calculator.js" defer></script>
-    <script src="/src/machine-guides.js" defer></script>
-    <script src="/src/access.bundle.js" defer></script>
-    <script src="/src/app.js" defer></script>
+    <script src="/src/access.bundle.js?v=startup-20261027-1" defer></script>
+    <script src="/src/calculator.js?v=startup-20261027-1" defer></script>
+    <script src="/src/filter-calculator.js?v=startup-20261027-1" defer></script>
+    <script src="/src/manual-calculator.js?v=startup-20261027-1" defer></script>
+    <script src="/src/machine-guides.js?v=startup-20261027-1" defer></script>
+    <script src="/src/app.js?v=startup-20261027-1" defer></script>
   </body>
 </html>
